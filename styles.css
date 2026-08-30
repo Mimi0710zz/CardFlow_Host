@@ -163,7 +163,7 @@ button{border:1px solid var(--line);border-radius:9px;padding:9px 13px;backgroun
 /* Shared three-zone table toolbar: search / filters / actions. */
 .toolbar-zoned{display:grid;grid-template-columns:minmax(220px,1fr) minmax(400px,1.6fr) auto;gap:12px;align-items:center;width:100%}
 .toolbar-zoned .toolbar-left,.toolbar-zoned .toolbar-center,.toolbar-zoned .toolbar-right{min-width:0}
-.toolbar-zoned .toolbar-left{display:flex;justify-content:flex-start}.toolbar-zoned .toolbar-left .search{width:100%;min-width:0;max-width:none}
+.toolbar-zoned .toolbar-left{display:flex;justify-content:flex-start}.toolbar-zoned .toolbar-left .search{flex:1 1 auto;width:100%;min-width:0;max-width:none}
 .customer-toolbar .toolbar-left .search{min-width:0}.card-toolbar .toolbar-left .search{min-width:0}
 .toolbar-zoned .toolbar-center{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}.toolbar-zoned .toolbar-center select{width:100%;max-width:none;min-width:0}
 .toolbar-zoned .toolbar-right{display:flex;justify-content:flex-end;gap:8px;white-space:nowrap}.toolbar-zoned .toolbar-right button{flex:0 0 auto}
