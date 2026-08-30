@@ -1,9 +1,9 @@
-import {LocalRepository,uuid} from "./services/local-repository.js";
-import {DriveAuth} from "./services/drive-auth.js";
-import {DriveRepository} from "./services/drive-repository.js";
-import {SyncService} from "./services/sync-service.js";
-import {formatMoney,parseMoney} from "./services/money.js";
-import {formatDate,formatDay,toStorageDate} from "./services/date.js";
+import {LocalRepository,uuid} from "./services/local-repository.js?v=20260830-drivefixv2";
+import {DriveAuth} from "./services/drive-auth.js?v=20260830-drivefixv2";
+import {DriveRepository} from "./services/drive-repository.js?v=20260830-drivefixv2";
+import {SyncService} from "./services/sync-service.js?v=20260830-drivefixv2";
+import {formatMoney,parseMoney} from "./services/money.js?v=20260830-drivefixv2";
+import {formatDate,formatDay,toStorageDate} from "./services/date.js?v=20260830-drivefixv2";
 
 const $=(selector,root=document)=>root.querySelector(selector), $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
 const repo=new LocalRepository(); let state=repo.load(), currentView="dashboard", filters={}, sorts={}, pendingRemote=null;
@@ -171,7 +171,11 @@ function connectionMessage(error){
   if(code==="gis-not-loaded") return "Chưa tải được dịch vụ đăng nhập Google. Vui lòng tải lại trang.";
   if(code==="popup_closed"||code==="popup_failed_to_open") return "Cửa sổ đăng nhập Google đã bị đóng hoặc bị trình duyệt chặn.";
   if(code==="access_denied") return "Tài khoản Google chưa cấp quyền truy cập Drive cho app Host.";
-  if(code==="drive-404") return "Liên kết file Drive cũ không còn hợp lệ. App đang dùng cơ chế tự tìm hoặc tạo lại file Host; hãy tải lại trang và kết nối lại.";
+  if(code==="drive-404"){
+    const operation=error?.operation||"Drive API";
+    return `Google Drive trả về 404 tại bước ${operation}. Bản V2 đã bỏ fileId cũ, thử mọi file Host tìm thấy và tự tạo file mới khi cần.`;
+  }
+  if(code==="drive-create-missing-id") return "Google Drive đã phản hồi khi tạo file nhưng không trả về File ID. Hãy mở F12 > Console và gửi dòng [Host Google Drive Sync].";
   if(code==="drive-403") return "Google Drive API từ chối quyền truy cập. Hãy kiểm tra Drive API đã Enable và tài khoản đang nằm trong Test users.";
   return `Không thể kết nối Google Drive${code?`: ${code}`:"."}`;
 }
