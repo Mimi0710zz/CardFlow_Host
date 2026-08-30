@@ -1,7 +1,7 @@
 import {createEmptyData} from "./default-data.js?v=20260830-customer-tagsv5";
 import {parseMoney} from "./money.js";
 import {toStorageDate} from "./date.js";
-import {normalizeCardBrand} from "./card-types.js?v=20260830-cardtypesv6";
+import {normalizeCardBrand,normalizeCardRank,normalizeOwnershipType} from "./card-types.js?v=20260831-cardmasterv7";
 const DATA_KEY="cardflow-host-data-v1", META_KEY="cardflow-host-sync-meta-v1";
 export const uuid = () => crypto.randomUUID?.() || `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const text = value => String(value ?? "").trim();
@@ -11,7 +11,7 @@ const uniqueTextArray=value=>[...new Set((Array.isArray(value)?value:value?[valu
 export function canonicalize(input={}){
   const base=createEmptyData(input.deviceId||uuid()), now=new Date().toISOString();
   const customers=(Array.isArray(input.customers)?input.customers:[]).map(x=>({id:x.id||uuid(),customerCode:text(x.customerCode),fullName:text(x.fullName),phone:text(x.phone),email:text(x.email),dateOfBirth:toStorageDate(x.dateOfBirth),address:text(x.address),personInCharge:text(x.personInCharge),notes:text(x.notes),createdAt:x.createdAt||now,updatedAt:x.updatedAt||now}));
-  const cardProducts=(Array.isArray(input.cardProducts)?input.cardProducts:[]).map(x=>({id:x.id||uuid(),cardId:text(x.cardId),bankId:text(x.bankId),cardName:text(x.cardName),network:text(x.network),cardType:text(x.cardType)||"credit",cardBrand:normalizeCardBrand(x.cardBrand||x.cardScheme||x.network),cardForm:text(x.cardForm||x.formFactor)||"Vật lý",status:text(x.status)||"active",notes:text(x.notes),createdAt:x.createdAt||now,updatedAt:x.updatedAt||now}));
+  const cardProducts=(Array.isArray(input.cardProducts)?input.cardProducts:[]).map(x=>{const ownershipType=normalizeOwnershipType(x.ownershipType||x.cardType);return {id:x.id||uuid(),cardId:text(x.cardId),bankId:text(x.bankId),cardName:text(x.cardName),network:text(x.network),cardType:ownershipType,ownershipType,cardRank:normalizeCardRank(x.cardRank),cardBrand:normalizeCardBrand(x.cardBrand||x.cardScheme||x.network),cardForm:text(x.cardForm||x.formFactor)||"Vật lý",status:text(x.status)||"active",notes:text(x.notes),createdAt:x.createdAt||now,updatedAt:x.updatedAt||now};});
   const productsById=new Map(cardProducts.map(x=>[x.id,x]));
   const customerIds=new Set(customers.map(x=>x.id)), productIds=new Set(cardProducts.map(x=>x.id));
   const resolveProductId=value=>{const raw=text(value);if(!raw||normalizeSpecial(raw)==="khong")return "";return productIds.has(raw)?raw:cardProducts.find(card=>card.cardId.toLocaleLowerCase("vi")===raw.toLocaleLowerCase("vi"))?.id||"";};
