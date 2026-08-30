@@ -13,6 +13,7 @@ const repo=new LocalRepository(); let state=repo.load(), currentView="dashboard"
 const auth=new DriveAuth(window.HostFlowConfig), drive=new DriveRepository(auth);
 const sync=new SyncService({localRepository:repo,driveRepository:drive,auth,getState:()=>state,setState:value=>{state=value;render();renderSyncStatus();}});
 const SIDEBAR_STORAGE_KEY="cardflow-host-sidebar-expanded";
+const expandedResponsiveRows=new Set();
 const VIEW_META={
   dashboard:{title:"Tổng hợp",description:"Tổng quan danh mục khách hàng và thẻ"},
   customers:{title:"Khách hàng",description:"Quản lý khách hàng và thẻ đang sở hữu"},
@@ -249,12 +250,36 @@ function renderAbout(){
 }
 
 function bindTables(){
+  enhanceResponsiveTables();
   $$('[data-filter]').forEach(el=>el.oninput=()=>{const [group,key]=el.dataset.filter.split(".");filters[group]||={};filters[group][key]=el.value;group==="customers"?renderCustomers():renderCards();bindTables();});
   $$('[data-clear-filter]').forEach(el=>el.onclick=()=>{filters[currentView]={};render();});
-  $$('tr[data-id]').forEach(row=>{row.onclick=()=>{const table=row.closest("table");$$('tr.selected',table).forEach(x=>x.classList.remove("selected"));row.classList.add("selected");if(innerWidth<768)row.classList.toggle("expanded");};row.ondblclick=()=>openDetail(row.closest("table").dataset.entity,row.dataset.id);row.oncontextmenu=e=>{e.preventDefault();openContext(e,row.closest("table").dataset.entity,row.dataset.id);};});
+  $$('tr[data-id]').forEach(row=>{row.onclick=event=>{if(event.target.closest('[data-responsive-toggle]'))return;const table=row.closest("table");$$('tr.selected',table).forEach(x=>x.classList.remove("selected"));row.classList.add("selected");};row.ondblclick=()=>openDetail(row.closest("table").dataset.entity,row.dataset.id);row.oncontextmenu=e=>{e.preventDefault();openContext(e,row.closest("table").dataset.entity,row.dataset.id);};});
   $$('th[data-sort]').forEach(th=>th.onclick=()=>{const table=th.closest("table"),body=$("tbody",table),index=Number(th.dataset.sort),direction=th.dataset.direction==="asc"?"desc":"asc";$$('th[data-sort]',table).forEach(x=>{delete x.dataset.direction;});th.dataset.direction=direction;const rows=$$('tr',body).sort((a,b)=>{const left=$("td:nth-child("+(index+1)+")",a)?.innerText.trim()||"",right=$("td:nth-child("+(index+1)+")",b)?.innerText.trim()||"";const ln=Number(left.replace(/\D/g,"")),rn=Number(right.replace(/\D/g,"")),result=left&&right&&Number.isFinite(ln)&&Number.isFinite(rn)&&/\d/.test(left)&&/\d/.test(right)?ln-rn:left.localeCompare(right,"vi",{sensitivity:"base"});return direction==="asc"?result:-result;});rows.forEach(row=>body.append(row));});
   $$('[data-add]').forEach(x=>x.onclick=()=>openForm(x.dataset.add));$$('[data-edit-selected]').forEach(x=>x.onclick=()=>selectedAction(x.dataset.editSelected,"edit"));$$('[data-delete-selected]').forEach(x=>x.onclick=()=>selectedAction(x.dataset.deleteSelected,"delete"));
   $('[data-download-template]')?.addEventListener("click",downloadTemplate);$('[data-import-excel]')?.addEventListener("click",()=>$("#excelFile").click());$('[data-export-json]')?.addEventListener("click",exportJson);
+}
+function responsiveRowTitle(entity,row){
+  const values=[...row.children].map(cell=>cell.textContent.trim()).filter(Boolean);
+  if(entity==="customer")return [values[1],values[0]].filter(Boolean).join(" · ");
+  if(entity==="product")return [values[1],values[2],values[0]].filter(Boolean).join(" · ");
+  if(entity==="detail-links")return [values[1],values[2],values[5]].filter(Boolean).join(" · ");
+  if(entity==="detail-owners")return [values[1],values[0],values[3]].filter(Boolean).join(" · ");
+  return values.slice(0,2).join(" · ");
+}
+function enhanceResponsiveTables(){
+  $$('table[data-entity]').forEach((table,tableIndex)=>{
+    const entity=table.dataset.entity,rows=$$('tbody tr[data-id],tbody tr[data-product-link],tbody tr[data-customer-link]',table);
+    if(!rows.length)return;
+    table.classList.add('responsive-accordion-table');
+    table.closest('.table-wrap')?.classList.add('responsive-accordion-wrap');
+    rows.forEach((row,rowIndex)=>{
+      if($('.responsive-toggle-cell',row))return;
+      const id=row.dataset.id||row.dataset.productLink||row.dataset.customerLink||String(rowIndex),key=`${entity}|${id}`,expanded=expandedResponsiveRows.has(key),panelId=`responsive-row-${tableIndex}-${rowIndex}`;
+      row.classList.add('responsive-record');row.classList.toggle('responsive-expanded',expanded);row.dataset.responsiveKey=key;row.id=panelId;
+      row.insertAdjacentHTML('afterbegin',`<td class="responsive-toggle-cell"><button type="button" data-responsive-toggle aria-expanded="${expanded}" aria-controls="${panelId}"><span>${esc(responsiveRowTitle(entity,row))}</span>${icon('chevron')}</button></td>`);
+    });
+  });
+  $$('[data-responsive-toggle]').forEach(button=>button.onclick=event=>{event.stopPropagation();const row=button.closest('.responsive-record'),expanded=!row.classList.contains('responsive-expanded');row.classList.toggle('responsive-expanded',expanded);button.setAttribute('aria-expanded',String(expanded));if(expanded)expandedResponsiveRows.add(row.dataset.responsiveKey);else expandedResponsiveRows.delete(row.dataset.responsiveKey);});
 }
 function selectedAction(entity,action){const row=$(`table[data-entity="${entity}"] tr.selected`);if(!row)return toast("Hãy chọn một dòng trước");action==="edit"?openForm(entity,row.dataset.id):removeEntity(entity,row.dataset.id);}
 function openDetail(entity,id){if(entity==="customer")openCustomerDetail(id);else if(entity==="product")openProductDetail(id);else openForm(entity,id);}
@@ -429,6 +454,7 @@ $('.menu-toggle')?.addEventListener('click',()=>setSidebarOpen(!$('.app-shell')?
 $('.sidebar-toggle')?.addEventListener('click',()=>setSidebarExpanded(!$('.app-shell')?.classList.contains('sidebar-expanded')));
 $('.sidebar-close')?.addEventListener('click',()=>setSidebarOpen(false));
 $('.sidebar-backdrop')?.addEventListener('click',()=>setSidebarOpen(false));
+document.addEventListener('keydown',event=>{if(event.key==='Escape')setSidebarOpen(false);});
 $('form',$('#modal')).onsubmit=submitForm;
 $$('[data-close]').forEach(x=>x.onclick=closeModal);
 $('[data-close-detail]').onclick=closeDetail;
