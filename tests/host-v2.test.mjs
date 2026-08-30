@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import {canonicalize} from "../services/local-repository.js";
 import {formatVndInput, parseMoney} from "../services/money.js";
-import {compareCards, compareCustomers, compareText} from "../services/sorting.js";
+import {compareCards,compareCardId,compareCustomerCardLinks,compareCustomers,compareText} from "../services/sorting.js";
 import {SyncService} from "../services/sync-service.js";
 import {CARD_BRANDS,normalizeCardBrand} from "../services/card-types.js";
 
@@ -28,6 +28,10 @@ assert.deepEqual(["Visa","JCB","American Express"].sort(compareText),["American 
 assert.deepEqual([{fullName:"B",customerCode:"2"},{fullName:"A",customerCode:"3"},{fullName:"A",customerCode:"1"}].sort(compareCustomers).map(x=>x.customerCode),["1","3","2"]);
 const bankNames={a:"Z Bank",b:"A Bank"};
 assert.deepEqual([{bankId:"a",cardName:"A",cardId:"1"},{bankId:"b",cardName:"Z",cardId:"2"}].sort((a,b)=>compareCards(a,b,x=>bankNames[x.bankId])).map(x=>x.cardId),["2","1"]);
+const randomCards=[{id:"6",cardId:"TCB-EVERYDAY"},{id:"2",cardId:"MB-SIGNATURE"},{id:"5",cardId:"SACOM-CASHBACK"},{id:"1",cardId:"MB-MASTER-PLATINUM"},{id:"4",cardId:"SACOM-AMEX"},{id:"3",cardId:"MB-ULTIMATE"}];
+assert.deepEqual(randomCards.sort(compareCardId).map(x=>x.cardId),["MB-MASTER-PLATINUM","MB-SIGNATURE","MB-ULTIMATE","SACOM-AMEX","SACOM-CASHBACK","TCB-EVERYDAY"]);
+const linkProducts=new Map([{id:"p2",cardId:"B",bankId:"b2",cardName:"Z"},{id:"p1",cardId:"A",bankId:"b1",cardName:"A"}].map(x=>[x.id,x]));
+assert.deepEqual([{cardProductId:"p2"},{cardProductId:"p1"}].sort((a,b)=>compareCustomerCardLinks(a,b,id=>linkProducts.get(id),card=>card.bankId)).map(x=>x.cardProductId),["p1","p2"]);
 
 class FakeLocalRepository extends EventTarget{
   constructor(){super();this.meta={fileId:"f",baseRevision:1,dirty:true,status:"dirty"};}

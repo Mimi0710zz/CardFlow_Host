@@ -4,7 +4,7 @@ import {DriveRepository} from "./services/drive-repository.js?v=20260830-custome
 import {SyncService} from "./services/sync-service.js?v=20260830-cardtypesv6";
 import {formatMoney,parseMoney,formatVndInput,bindVndInput} from "./services/money.js?v=20260830-customer-tagsv5";
 import {formatDate,formatDay,toStorageDate} from "./services/date.js?v=20260830-customercardsv3";
-import {compareText,sortByLabel,compareCards,compareCustomers} from "./services/sorting.js?v=20260830-customer-tagsv5";
+import {compareText,sortByLabel,compareCards,compareCardId,compareCustomerCardLinks,compareCustomers} from "./services/sorting.js?v=20260830-customer-card-sortv8";
 import {CARD_BRANDS,normalizeCardBrand} from "./services/card-types.js?v=20260830-cardtypesv6";
 import {calculateEffectiveCreditLimit} from "./services/credit-limit.js?v=20260830-effective-limitv7";
 
@@ -69,7 +69,7 @@ const CARD_FORMS=["Phi vật lý","Vật lý"];
 const cardBrandValues=()=>[...new Set([...CARD_BRANDS,...state.cardProducts.flatMap(x=>[x.cardBrand,x.network]).map(normalizeCardBrand).filter(Boolean)])].sort(compareText);
 const textValueOptions=(values,value,placeholder="-- Chọn --")=>`<option value="">${placeholder}</option>`+values.slice().sort(compareText).map(item=>`<option value="${esc(item)}" ${item===value?"selected":""}>${esc(item)}</option>`).join("");
 const sortedCardProducts=()=>[...state.cardProducts].sort((a,b)=>compareCards(a,b,x=>bank(x.bankId)?.name||""));
-const sortedCardProductsById=()=>[...state.cardProducts].sort((a,b)=>compareText(a.cardId,b.cardId));
+const sortedCardProductsById=()=>state.cardProducts.filter(card=>card?.id).sort(compareCardId);
 const bankOptions=value=>`<option value="">-- Chọn --</option>`+sortByLabel(state.banks,x=>x.name).map(x=>`<option value="${esc(x.id)}" ${x.id===value?"selected":""}>${esc(`${x.code} — ${x.name}`)}</option>`).join("");
 const customerOptions=value=>`<option value="">-- Chọn --</option>`+[...state.customers].sort(compareCustomers).map(x=>`<option value="${esc(x.id)}" ${x.id===value?"selected":""}>${esc(`${x.customerCode} — ${x.fullName}`)}</option>`).join("");
 function customerCardProductOptions(value=""){
@@ -83,7 +83,7 @@ function sharedLimitChip(productId){
   const card=product(productId);return card?`<span class="shared-limit-chip" data-shared-chip="${esc(card.id)}"><span>${esc(card.cardId)}</span><button type="button" data-remove-shared-chip aria-label="Bỏ ${esc(card.cardId)}">×</button></span>`:"";
 }
 function sharedLimitControl(link={}){
-  const selected=[...new Set(link.sharedLimitCardIds||[])].filter(id=>product(id)&&id!==link.cardProductId);
+  const selected=[...new Set(link.sharedLimitCardIds||[])].filter(id=>product(id)&&id!==link.cardProductId).sort((a,b)=>compareCardId(product(a),product(b)));
   return `<div class="shared-limit-tags" data-shared-limit>${selected.map(sharedLimitChip).join("")}<input type="text" data-shared-search autocomplete="off" placeholder="Không / Tìm CardID..." aria-label="Tìm CardID chung hạn mức"><div class="shared-limit-suggestions" data-shared-suggestions hidden></div></div>`;
 }
 function customerCardRow(link={}){
@@ -99,7 +99,7 @@ function customerCardRow(link={}){
   </div>`;
 }
 function customerCardsEditor(links=[]){
-  const rows=links.length?links:[{}];
+  const sortedLinks=[...links].filter(link=>product(link.cardProductId)).sort((a,b)=>compareCustomerCardLinks(a,b,product,card=>bank(card?.bankId)?.name||"")),rows=sortedLinks.length?sortedLinks:[{}];
   return `<div class="customer-card-editor full">
     <div class="customer-card-title"><div><h3>Thẻ của khách hàng</h3><p>Gán nhiều thẻ và thiết lập hạn mức dùng chung.</p></div></div>
     <datalist id="customerCreditLimitOptions">${customerCreditLimitOptions()}</datalist>
@@ -122,18 +122,19 @@ function bindCustomerCardEditor(root){
     const control=$("[data-shared-limit]",row),input=$("[data-shared-search]",row),suggestions=$("[data-shared-suggestions]",row);if(!control||!input||!suggestions)return;
     let activeIndex=-1;
     const selectedIds=()=>new Set($$("[data-shared-chip]",control).map(chip=>chip.dataset.sharedChip));
+    const sortChips=()=>{$$("[data-shared-chip]",control).sort((a,b)=>compareCardId(product(a.dataset.sharedChip),product(b.dataset.sharedChip))).forEach(chip=>control.insertBefore(chip,input));};
     const updatePlaceholder=()=>{input.placeholder=selectedIds().size?"Tìm thêm CardID...":"Không / Tìm CardID...";};
     const bindChip=chip=>{$("[data-remove-shared-chip]",chip).onclick=()=>{chip.remove();updatePlaceholder();renderSuggestions();input.focus();};};
-    const addChip=id=>{if(!id||selectedIds().has(id)||id===$("[data-card-product]",row)?.value)return;const html=sharedLimitChip(id);if(!html)return;input.insertAdjacentHTML("beforebegin",html);bindChip(input.previousElementSibling);input.value="";updatePlaceholder();renderSuggestions();input.focus();};
+    const addChip=id=>{if(!id||selectedIds().has(id)||id===$("[data-card-product]",row)?.value)return;const html=sharedLimitChip(id);if(!html)return;input.insertAdjacentHTML("beforebegin",html);bindChip(input.previousElementSibling);sortChips();input.value="";updatePlaceholder();renderSuggestions();input.focus();};
     const removeChip=id=>{const chip=$$("[data-shared-chip]",control).find(item=>item.dataset.sharedChip===id);if(chip)chip.remove();updatePlaceholder();};
     const renderSuggestions=()=>{
       const query=normalize(input.value),current=$("[data-card-product]",row)?.value,selected=selectedIds();
-      const matches=sortedCardProductsById().filter(card=>card.id!==current&&!selected.has(card.id)&&(!query||normalize(card.cardId).includes(query)));
+      const matches=state.cardProducts.filter(card=>card?.id&&card.id!==current&&!selected.has(card.id)&&(!query||normalize(card.cardId).includes(query))).sort(compareCardId);
       activeIndex=-1;suggestions.innerHTML=matches.map(card=>`<button type="button" data-shared-suggestion="${esc(card.id)}">${esc(card.cardId)}</button>`).join("");
       suggestions.hidden=!matches.length||document.activeElement!==input;
       $$('[data-shared-suggestion]',suggestions).forEach(button=>button.onclick=()=>addChip(button.dataset.sharedSuggestion));
     };
-    $$("[data-shared-chip]",control).forEach(bindChip);
+    $$("[data-shared-chip]",control).forEach(bindChip);sortChips();
     input.onfocus=renderSuggestions;input.oninput=renderSuggestions;input.onblur=()=>setTimeout(()=>{suggestions.hidden=true;},120);
     input.onkeydown=event=>{
       const choices=$$('[data-shared-suggestion]',suggestions);
@@ -286,8 +287,8 @@ function removeEntity(entity,id){let label,relations=0;if(entity==="customer"){l
 function copyCustomer(id){const source=customer(id);if(!source)return;openForm("customer",null,{...source,customerCode:"",fullName:`${source.fullName} (Bản sao)`,customerCards:linksForCustomer(id).map(link=>({...link,id:""}))});}
 
 function openCustomerDetail(id){
-  const c=customer(id);if(!c)return;const links=linksForCustomer(id),analysis=effectiveLimit(links),banks=new Set(links.map(x=>product(x.cardProductId)?.bankId));
-  const rows=links.map(l=>{const p=product(l.cardProductId);return `<tr data-product-link="${p?.id||""}">${cell("Card ID",esc(p?.cardId||"—"))}${cell("Ngân hàng",esc(bank(p?.bankId)?.name||"—"))}${cell("Tên thẻ",esc(p?.cardName||"—"))}${cell("Loại thẻ",esc(p?.cardBrand||p?.network||l.cardBrand||"—"))}${cell("Hình thức",esc(p?.cardForm||l.cardForm||"—"))}${cell("Hạn mức",formatMoney(l.creditLimit))}${cell("Ngày sao kê",formatDay(l.statementDay))}${cell("Ngày đến hạn",formatDay(l.paymentDueDay))}${cell("Chung hạn mức",l.sharedLimitCardIds?.length?`${l.sharedLimitCardIds.length} thẻ`:"Không")}${cell("Trạng thái",badge(l.status))}</tr>`;});
+  const c=customer(id);if(!c)return;const links=linksForCustomer(id),sortedLinks=[...links].filter(link=>product(link.cardProductId)).sort((a,b)=>compareCustomerCardLinks(a,b,product,card=>bank(card?.bankId)?.name||"")),analysis=effectiveLimit(links),banks=new Set(links.map(x=>product(x.cardProductId)?.bankId));
+  const rows=sortedLinks.map(l=>{const p=product(l.cardProductId);return `<tr data-product-link="${p?.id||""}">${cell("Card ID",esc(p?.cardId||"—"))}${cell("Ngân hàng",esc(bank(p?.bankId)?.name||"—"))}${cell("Tên thẻ",esc(p?.cardName||"—"))}${cell("Loại thẻ",esc(p?.cardBrand||p?.network||l.cardBrand||"—"))}${cell("Hình thức",esc(p?.cardForm||l.cardForm||"—"))}${cell("Hạn mức",formatMoney(l.creditLimit))}${cell("Ngày sao kê",formatDay(l.statementDay))}${cell("Ngày đến hạn",formatDay(l.paymentDueDay))}${cell("Chung hạn mức",l.sharedLimitCardIds?.length?`${l.sharedLimitCardIds.length} thẻ`:"Không")}${cell("Trạng thái",badge(l.status))}</tr>`;});
   openDetailModal(`Khách hàng: ${c.fullName}`,`<div class="detail-info">${info("Mã KH",c.customerCode)}${info("Họ tên",c.fullName)}${info("Số điện thoại",c.phone)}${info("Email",c.email)}${info("Ngày sinh",formatDate(c.dateOfBirth))}${info("Ghi chú",c.notes)}</div>${limitInconsistencyWarning(analysis)}<div class="kpis" style="margin-top:14px"><div class="kpi blue"><small>Số thẻ</small><strong>${links.length}</strong></div><div class="kpi teal"><small>Tổng hạn mức</small><strong>${effectiveLimitDisplay(analysis)}</strong></div><div class="kpi amber"><small>Số ngân hàng</small><strong>${banks.size}</strong></div><div class="kpi red"><small>Không hoạt động</small><strong>${links.filter(x=>x.status!=="active").length}</strong></div></div><div class="panel" style="margin-top:14px"><div class="section-title"><h2>Danh sách thẻ đang sở hữu</h2><button class="primary" data-add-link>Thêm thẻ</button></div>${entityTable(["Card ID","Ngân hàng","Tên thẻ","Loại thẻ","Hình thức","Hạn mức","Sao kê","Đến hạn","Chung hạn mức","Trạng thái"],rows,"detail-links")}</div>`);$('[data-add-link]').onclick=()=>{closeDetail();openForm("link",null,{customerId:id});};$$('[data-product-link]').forEach(x=>x.onclick=()=>openProductDetail(x.dataset.productLink));
 }
 function openProductDetail(id){

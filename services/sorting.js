@@ -7,5 +7,14 @@ export const compareCards = (left, right, getBankName = () => "") =>
   compareText(left?.cardName, right?.cardName) ||
   compareText(left?.cardId, right?.cardId);
 
+export const compareCardId = (left, right) => compareText(left?.cardId, right?.cardId);
+
+export const compareCustomerCardLinks = (left, right, getProduct, getBankName = () => "") => {
+  const leftCard=getProduct(left?.cardProductId),rightCard=getProduct(right?.cardProductId);
+  return compareCardId(leftCard,rightCard) ||
+    compareText(getBankName(leftCard),getBankName(rightCard)) ||
+    compareText(leftCard?.cardName,rightCard?.cardName);
+};
+
 export const compareCustomers = (left, right) =>
   compareText(left?.fullName, right?.fullName) || compareText(left?.customerCode, right?.customerCode);
