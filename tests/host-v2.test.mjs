@@ -3,12 +3,18 @@ import {canonicalize} from "../services/local-repository.js";
 import {formatVndInput, parseMoney} from "../services/money.js";
 import {compareCards, compareCustomers, compareText} from "../services/sorting.js";
 import {SyncService} from "../services/sync-service.js";
+import {CARD_BRANDS,normalizeCardBrand} from "../services/card-types.js";
 
 globalThis.CustomEvent ??= class CustomEvent extends Event { constructor(type, options={}){super(type);this.detail=options.detail;} };
 
 const legacy=canonicalize({schemaVersion:1,banks:[{id:"b",code:"B",name:"Bank"}],customers:[{id:"c",customerCode:"KH-0001",fullName:"An"}],cardProducts:[{id:"p",cardId:"V1",bankId:"b",cardName:"Gold",network:"Visa"}],customerCards:[{id:"l",customerId:"c",cardProductId:"p",creditLimit:"1.000.000 đ",sharedLimitCardId:"p"}]});
 assert.equal(legacy.schemaVersion,2);
 assert.equal(legacy.cardProducts[0].cardBrand,"Visa");
+assert.deepEqual(CARD_BRANDS,["American Express","JCB","MasterCard","NAPAS","Union Pay","Visa"]);
+assert.equal(normalizeCardBrand("Mastercard"),"MasterCard");
+assert.equal(normalizeCardBrand("Napas"),"NAPAS");
+const legacyBrands=canonicalize({cardProducts:[{id:"m",cardId:"M",cardBrand:"Mastercard"},{id:"n",cardId:"N",network:"Napas"}]});
+assert.deepEqual(legacyBrands.cardProducts.map(x=>x.cardBrand),["MasterCard","NAPAS"]);
 assert.equal(legacy.cardProducts[0].cardForm,"Vật lý");
 assert.deepEqual(legacy.customerCards[0].sharedLimitCardIds,[]);
 assert.equal(legacy.customerCards[0].creditLimit,1_000_000);
