@@ -1,3 +1,3 @@
 window.HostFlowConfig = {
-  googleClientId: "1007943928108-s17rp2io98tlb7nio6fn05q24eumtd31.apps.googleusercontent.com"
+  googleClientId: "105175624991-vdjdgbrinpa000padet529acqc62kr2b.apps.googleusercontent.com"
 };

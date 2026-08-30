@@ -1,7 +1,7 @@
 const SCOPE="https://www.googleapis.com/auth/drive.file";
 export class DriveAuth{
   constructor(config){this.clientId=config?.googleClientId||"";this.accessToken="";this.tokenClient=null;}
-  isConfigured(){return Boolean(this.clientId&&!this.clientId.startsWith("YOUR_"));} hasToken(){return Boolean(this.accessToken);}
+  isConfigured(){return Boolean(this.clientId&&!this.clientId.startsWith("YOUR_"));} hasToken(){return Boolean(this.accessToken);} isReady(){return this.isConfigured()&&Boolean(window.google?.accounts?.oauth2);}
   async connect(){
     if(!this.isConfigured()) throw new Error("missing-client-id"); if(!window.google?.accounts?.oauth2) throw new Error("gis-not-loaded");
     this.tokenClient ||= google.accounts.oauth2.initTokenClient({client_id:this.clientId,scope:SCOPE,callback:()=>{}});

@@ -8,13 +8,34 @@ import {formatDate,formatDay,toStorageDate} from "./services/date.js";
 const $=(selector,root=document)=>root.querySelector(selector), $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
 const repo=new LocalRepository(); let state=repo.load(), currentView="dashboard", filters={}, sorts={}, pendingRemote=null;
 const auth=new DriveAuth(window.HostFlowConfig), drive=new DriveRepository(auth);
-const sync=new SyncService({localRepository:repo,driveRepository:drive,auth,getState:()=>state,setState:value=>{state=value;render();}});
+const sync=new SyncService({localRepository:repo,driveRepository:drive,auth,getState:()=>state,setState:value=>{state=value;render();renderSyncStatus();}});
+const SIDEBAR_STORAGE_KEY="cardflow-host-sidebar-expanded";
+const VIEW_META={
+  dashboard:{title:"Tổng hợp",description:"Tổng quan danh mục khách hàng và thẻ"},
+  customers:{title:"Khách hàng",description:"Quản lý khách hàng và thẻ đang sở hữu"},
+  cards:{title:"Thẻ",description:"Quản lý dòng thẻ dùng chung"},
+  catalog:{title:"Danh mục",description:"Quản lý dữ liệu danh mục"},
+  system:{title:"Hệ thống",description:"Nhập liệu, đồng bộ và sao lưu"},
+  about:{title:"Giới thiệu",description:"Thông tin và hướng dẫn"}
+};
+const ICON_PATHS={
+  menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
+  x:'<path d="m18 6-12 12M6 6l12 12"/>',
+  "layout-dashboard":'<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
+  "credit-card":'<rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/>',
+  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+  "table-properties":'<path d="M15 3v18M3 9h18M3 15h18"/><rect width="18" height="18" x="3" y="3" rx="2"/>',
+  settings:'<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z"/><circle cx="12" cy="12" r="3"/>',
+  "circle-help":'<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 1 1 5.83 1c0 2-3 2-3 4M12 18h.01"/>'
+};
+function icon(name){return `<svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON_PATHS[name]||ICON_PATHS["circle-help"]}</svg>`;}
+let connectingDrive=false, authMessage="";
 const normalize=value=>String(value??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").toLowerCase();
 const esc=value=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const bank=id=>state.banks.find(x=>x.id===id); const customer=id=>state.customers.find(x=>x.id===id); const product=id=>state.cardProducts.find(x=>x.id===id);
 const linksForCustomer=id=>state.customerCards.filter(x=>x.customerId===id); const linksForProduct=id=>state.customerCards.filter(x=>x.cardProductId===id);
 const sum=(items,fn)=>items.reduce((total,item)=>total+Number(fn(item)||0),0);
-function save(message="Đã lưu thay đổi"){state=repo.save(state);render();toast(message);}
+function save(message="Đã lưu thay đổi"){state=repo.save(state);repo.saveMeta({...repo.loadMeta(),status:auth.hasToken()?"dirty":"disconnected"});render();renderSyncStatus();toast(message);}
 function toast(message){const el=$("#toast");el.textContent=message;el.classList.add("show");clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove("show"),2400);}
 function statusLabel(value){return value==="active"?"Đang hoạt động":value==="inactive"?"Ngừng hoạt động":value==="closed"?"Đã đóng":value==="expiring"?"Sắp hết hạn":value||"—";}
 function badge(value){return `<span class="badge ${value==="active"?"":"off"}">${esc(statusLabel(value))}</span>`;}
@@ -32,7 +53,7 @@ function renderDashboard(){
   const topProducts=state.cardProducts.map(p=>({name:`${bank(p.bankId)?.name||""} ${p.cardName}`,count:linksForProduct(p.id).length})).sort((a,b)=>b.count-a.count).slice(0,5);
   const topCustomers=state.customers.map(c=>{const links=linksForCustomer(c.id);return {id:c.id,name:c.fullName,count:links.length,limit:sum(links,x=>x.creditLimit)}}).sort((a,b)=>b.count-a.count||b.limit-a.limit).slice(0,5);
   const today=new Date().getDate(), upcoming=[0,3,7].map(range=>({range,items:active.filter(x=>[x.statementDay,x.paymentDueDay].some(day=>day&&((day-today+31)%31)<=range))}));
-  $("#view-dashboard").innerHTML=`<div class="kpis"><div class="kpi"><small>Tổng khách hàng</small><strong>${state.customers.length}</strong></div><div class="kpi"><small>Tổng thẻ đang quản lý</small><strong>${active.length}</strong></div><div class="kpi"><small>Tổng hạn mức</small><strong>${formatMoney(totalLimit)}</strong></div><div class="kpi"><small>Số dòng thẻ</small><strong>${state.cardProducts.length}</strong></div></div>
+  $("#view-dashboard").innerHTML=`<div class="kpis"><div class="kpi blue"><small>Tổng khách hàng</small><strong>${state.customers.length}</strong></div><div class="kpi teal"><small>Tổng thẻ đang quản lý</small><strong>${active.length}</strong></div><div class="kpi amber"><small>Tổng hạn mức</small><strong>${formatMoney(totalLimit)}</strong></div><div class="kpi indigo"><small>Số dòng thẻ</small><strong>${state.cardProducts.length}</strong></div></div>
   <div class="grid-2"><div class="panel"><h2>Thống kê theo ngân hàng</h2>${simpleTable(["Ngân hàng","Số thẻ","Tổng hạn mức"],byBank.map(x=>[x.name,x.count,formatMoney(x.limit)]))}</div><div class="panel"><h2>Top dòng thẻ</h2>${simpleTable(["Dòng thẻ","Khách sở hữu"],topProducts.map(x=>[x.name,x.count]))}</div><div class="panel"><h2>Khách hàng có nhiều thẻ nhất</h2>${simpleTable(["Khách hàng","Số thẻ","Tổng hạn mức"],topCustomers.map(x=>[`<a href="#" data-open-customer="${x.id}">${esc(x.name)}</a>`,x.count,formatMoney(x.limit)]))}</div><div class="panel"><h2>Ngày sắp tới</h2><div class="upcoming">${upcoming.map((x,i)=>`<div><span>${i===0?"Hôm nay":`${x.range} ngày tới`}</span><strong>${x.items.length} thẻ</strong></div>`).join("")}</div></div></div>`;
   $$('[data-open-customer]').forEach(x=>x.onclick=e=>{e.preventDefault();openCustomerDetail(x.dataset.openCustomer);});
 }
@@ -57,7 +78,7 @@ function plainFilter(path,label,items,value){return `<select data-filter="${path
 
 function renderCatalog(){const rows=state.banks.slice().sort((a,b)=>a.name.localeCompare(b.name,"vi")).map(b=>`<tr data-id="${b.id}">${cell("Mã ngân hàng",esc(b.code))}${cell("Tên ngân hàng",esc(b.name))}</tr>`);$("#view-catalog").innerHTML=`<div class="panel"><h2>Danh mục ngân hàng</h2><div class="toolbar"><button class="primary" data-add="bank">Thêm</button><button data-edit-selected="bank">Tùy chỉnh</button><button class="danger" data-delete-selected="bank">Xóa</button></div>${entityTable(["Mã ngân hàng","Tên ngân hàng"],rows,"bank")}</div>`;}
 function renderSystem(){$("#view-system").innerHTML=`<div class="grid-2"><div class="panel"><h2>Nhập dữ liệu Excel</h2><p>Dùng template 4 sheet để nhập Customer, Card Product và quan hệ sở hữu. Dòng lỗi không bị bỏ qua im lặng.</p><div class="actions"><button data-download-template>Tải template Excel</button><button class="primary" data-import-excel>Nhập Excel</button></div><div id="importResult"></div></div><div class="panel"><h2>Dữ liệu & sao lưu</h2><p>Namespace local: <code>cardflow-host-data-v1</code></p><p>File Drive: <code>cardflow-host-data.json</code></p><button data-export-json>Xuất bản sao JSON</button></div></div>`;}
-function renderAbout(){$("#view-about").innerHTML=`<div class="panel"><h2>Giới thiệu CardFlow Host</h2><p>Ứng dụng độc lập quản lý khách hàng, dòng thẻ và quan hệ sở hữu. Không lưu số thẻ đầy đủ, CVV/CVC, OTP, PIN hoặc thông tin đăng nhập ngân hàng.</p><h3>Quy ước dữ liệu</h3><p>Tiền hiển thị theo định dạng Việt Nam; ngày theo DD-MM-YYYY; ngày sao kê và đến hạn là ngày trong tháng.</p><h3>Phiên bản</h3><p>Host Schema V1 — local-first, hỗ trợ đồng bộ thủ công Google Drive.</p></div>`;}
+function renderAbout(){$("#view-about").innerHTML=`<div class="panel"><h2>Giới thiệu QUẢN LÝ THẺ - HOST</h2><p>Ứng dụng độc lập quản lý khách hàng, dòng thẻ và quan hệ sở hữu. Không lưu số thẻ đầy đủ, CVV/CVC, OTP, PIN hoặc thông tin đăng nhập ngân hàng.</p><h3>Quy ước dữ liệu</h3><p>Tiền hiển thị theo định dạng Việt Nam; ngày theo DD-MM-YYYY; ngày sao kê và đến hạn là ngày trong tháng.</p><h3>Phiên bản</h3><p>Host Schema V1 — local-first, hỗ trợ đồng bộ thủ công Google Drive.</p></div>`;}
 
 function bindTables(){
   $$('[data-filter]').forEach(el=>el.oninput=()=>{const [group,key]=el.dataset.filter.split(".");filters[group]||={};filters[group][key]=el.value;group==="customers"?renderCustomers():renderCards();bindTables();});
@@ -89,8 +110,8 @@ function upsert(collection,id,data){const index=state[collection].findIndex(x=>x
 function removeEntity(entity,id){let label,relations=0;if(entity==="customer"){label=customer(id)?.fullName;relations=linksForCustomer(id).length;}if(entity==="product"){label=product(id)?.cardName;relations=linksForProduct(id).length;}if(entity==="bank"){label=bank(id)?.name;relations=state.cardProducts.filter(x=>x.bankId===id).length;if(relations)return toast("Không thể xóa ngân hàng đang được dòng thẻ sử dụng");}if(!confirm(`Xóa “${label}”${relations?` và ${relations} quan hệ liên quan`:""}?`))return;if(entity==="customer"){state.customers=state.customers.filter(x=>x.id!==id);state.customerCards=state.customerCards.filter(x=>x.customerId!==id);}if(entity==="product"){state.cardProducts=state.cardProducts.filter(x=>x.id!==id);state.customerCards=state.customerCards.filter(x=>x.cardProductId!==id);}if(entity==="bank")state.banks=state.banks.filter(x=>x.id!==id);save("Đã xóa an toàn");}
 function copyCustomer(id){const source=customer(id);if(!source)return;openForm("customer",null,{...source,customerCode:`${source.customerCode}-COPY`,fullName:`${source.fullName} (Bản sao)`});}
 
-function openCustomerDetail(id){const c=customer(id);if(!c)return;const links=linksForCustomer(id),banks=new Set(links.map(x=>product(x.cardProductId)?.bankId));const rows=links.map(l=>{const p=product(l.cardProductId);return `<tr data-product-link="${p?.id||""}">${cell("Card ID",esc(p?.cardId||"—"))}${cell("Ngân hàng",esc(bank(p?.bankId)?.name||"—"))}${cell("Tên thẻ",esc(p?.cardName||"—"))}${cell("Mạng thẻ",esc(p?.network||"—"))}${cell("Hạn mức",formatMoney(l.creditLimit))}${cell("Ngày sao kê",formatDay(l.statementDay))}${cell("Ngày đến hạn",formatDay(l.paymentDueDay))}${cell("Ngày mở",formatDate(l.openingDate)||"—")}${cell("Ngày hết hạn",formatDate(l.expiryDate)||"—")}${cell("4 số cuối",esc(l.last4Digits||"—"))}${cell("Trạng thái",badge(l.status))}${cell("Ghi chú",esc(l.notes||"—"))}</tr>`;});openDetailModal(`Khách hàng: ${c.fullName}`,`<div class="detail-info">${info("Mã KH",c.customerCode)}${info("Họ tên",c.fullName)}${info("Số điện thoại",c.phone)}${info("Email",c.email)}${info("Ngày sinh",formatDate(c.dateOfBirth))}${info("Địa chỉ",c.address)}${info("Người phụ trách",c.personInCharge)}${info("Ghi chú",c.notes)}</div><div class="kpis" style="margin-top:14px"><div class="kpi"><small>Số thẻ</small><strong>${links.length}</strong></div><div class="kpi"><small>Tổng hạn mức</small><strong>${formatMoney(sum(links,x=>x.creditLimit))}</strong></div><div class="kpi"><small>Số ngân hàng</small><strong>${banks.size}</strong></div><div class="kpi"><small>Không hoạt động</small><strong>${links.filter(x=>x.status!=="active").length}</strong></div></div><div class="panel" style="margin-top:14px"><div class="section-title"><h2>Danh sách thẻ đang sở hữu</h2><button class="primary" data-add-link>Thêm thẻ</button></div>${entityTable(["Card ID","Ngân hàng","Tên thẻ","Mạng thẻ","Hạn mức","Sao kê","Đến hạn","Ngày mở","Hết hạn","4 số cuối","Trạng thái","Ghi chú"],rows,"detail-links")}</div>`);$('[data-add-link]').onclick=()=>{closeDetail();openForm("link",null,{customerId:id});};$$('[data-product-link]').forEach(x=>x.onclick=()=>openProductDetail(x.dataset.productLink));}
-function openProductDetail(id){const p=product(id);if(!p)return;const links=linksForProduct(id),total=sum(links,x=>x.creditLimit),rows=links.map(l=>{const c=customer(l.customerId);return `<tr data-customer-link="${c?.id||""}">${cell("Mã KH",esc(c?.customerCode||"—"))}${cell("Họ tên",esc(c?.fullName||"—"))}${cell("Số điện thoại",esc(c?.phone||"—"))}${cell("Hạn mức",formatMoney(l.creditLimit))}${cell("Ngày sao kê",formatDay(l.statementDay))}${cell("Ngày đến hạn",formatDay(l.paymentDueDay))}${cell("Trạng thái",badge(l.status))}</tr>`;});openDetailModal(`Dòng thẻ: ${p.cardName}`,`<div class="detail-info">${info("Card ID",p.cardId)}${info("Ngân hàng",bank(p.bankId)?.name)}${info("Tên thẻ",p.cardName)}${info("Mạng thẻ",p.network)}${info("Loại thẻ",p.cardType==="debit"?"Ghi nợ":"Tín dụng")}${info("Ghi chú",p.notes)}</div><div class="kpis" style="margin-top:14px"><div class="kpi"><small>Số khách sở hữu</small><strong>${links.length}</strong></div><div class="kpi"><small>Tổng hạn mức</small><strong>${formatMoney(total)}</strong></div><div class="kpi"><small>Hạn mức trung bình</small><strong>${formatMoney(links.length?total/links.length:0)}</strong></div></div><div class="panel" style="margin-top:14px"><h2>Danh sách khách đang sở hữu</h2>${entityTable(["Mã KH","Họ tên","Số điện thoại","Hạn mức","Ngày sao kê","Ngày đến hạn","Trạng thái"],rows,"detail-owners")}</div>`);$$('[data-customer-link]').forEach(x=>x.onclick=()=>openCustomerDetail(x.dataset.customerLink));}
+function openCustomerDetail(id){const c=customer(id);if(!c)return;const links=linksForCustomer(id),banks=new Set(links.map(x=>product(x.cardProductId)?.bankId));const rows=links.map(l=>{const p=product(l.cardProductId);return `<tr data-product-link="${p?.id||""}">${cell("Card ID",esc(p?.cardId||"—"))}${cell("Ngân hàng",esc(bank(p?.bankId)?.name||"—"))}${cell("Tên thẻ",esc(p?.cardName||"—"))}${cell("Mạng thẻ",esc(p?.network||"—"))}${cell("Hạn mức",formatMoney(l.creditLimit))}${cell("Ngày sao kê",formatDay(l.statementDay))}${cell("Ngày đến hạn",formatDay(l.paymentDueDay))}${cell("Ngày mở",formatDate(l.openingDate)||"—")}${cell("Ngày hết hạn",formatDate(l.expiryDate)||"—")}${cell("4 số cuối",esc(l.last4Digits||"—"))}${cell("Trạng thái",badge(l.status))}${cell("Ghi chú",esc(l.notes||"—"))}</tr>`;});openDetailModal(`Khách hàng: ${c.fullName}`,`<div class="detail-info">${info("Mã KH",c.customerCode)}${info("Họ tên",c.fullName)}${info("Số điện thoại",c.phone)}${info("Email",c.email)}${info("Ngày sinh",formatDate(c.dateOfBirth))}${info("Địa chỉ",c.address)}${info("Người phụ trách",c.personInCharge)}${info("Ghi chú",c.notes)}</div><div class="kpis" style="margin-top:14px"><div class="kpi blue"><small>Số thẻ</small><strong>${links.length}</strong></div><div class="kpi teal"><small>Tổng hạn mức</small><strong>${formatMoney(sum(links,x=>x.creditLimit))}</strong></div><div class="kpi amber"><small>Số ngân hàng</small><strong>${banks.size}</strong></div><div class="kpi red"><small>Không hoạt động</small><strong>${links.filter(x=>x.status!=="active").length}</strong></div></div><div class="panel" style="margin-top:14px"><div class="section-title"><h2>Danh sách thẻ đang sở hữu</h2><button class="primary" data-add-link>Thêm thẻ</button></div>${entityTable(["Card ID","Ngân hàng","Tên thẻ","Mạng thẻ","Hạn mức","Sao kê","Đến hạn","Ngày mở","Hết hạn","4 số cuối","Trạng thái","Ghi chú"],rows,"detail-links")}</div>`);$('[data-add-link]').onclick=()=>{closeDetail();openForm("link",null,{customerId:id});};$$('[data-product-link]').forEach(x=>x.onclick=()=>openProductDetail(x.dataset.productLink));}
+function openProductDetail(id){const p=product(id);if(!p)return;const links=linksForProduct(id),total=sum(links,x=>x.creditLimit),rows=links.map(l=>{const c=customer(l.customerId);return `<tr data-customer-link="${c?.id||""}">${cell("Mã KH",esc(c?.customerCode||"—"))}${cell("Họ tên",esc(c?.fullName||"—"))}${cell("Số điện thoại",esc(c?.phone||"—"))}${cell("Hạn mức",formatMoney(l.creditLimit))}${cell("Ngày sao kê",formatDay(l.statementDay))}${cell("Ngày đến hạn",formatDay(l.paymentDueDay))}${cell("Trạng thái",badge(l.status))}</tr>`;});openDetailModal(`Dòng thẻ: ${p.cardName}`,`<div class="detail-info">${info("Card ID",p.cardId)}${info("Ngân hàng",bank(p.bankId)?.name)}${info("Tên thẻ",p.cardName)}${info("Mạng thẻ",p.network)}${info("Loại thẻ",p.cardType==="debit"?"Ghi nợ":"Tín dụng")}${info("Ghi chú",p.notes)}</div><div class="kpis" style="margin-top:14px"><div class="kpi blue"><small>Số khách sở hữu</small><strong>${links.length}</strong></div><div class="kpi teal"><small>Tổng hạn mức</small><strong>${formatMoney(total)}</strong></div><div class="kpi indigo"><small>Hạn mức trung bình</small><strong>${formatMoney(links.length?total/links.length:0)}</strong></div></div><div class="panel" style="margin-top:14px"><h2>Danh sách khách đang sở hữu</h2>${entityTable(["Mã KH","Họ tên","Số điện thoại","Hạn mức","Ngày sao kê","Ngày đến hạn","Trạng thái"],rows,"detail-owners")}</div>`);$$('[data-customer-link]').forEach(x=>x.onclick=()=>openCustomerDetail(x.dataset.customerLink));}
 function info(label,value){return `<div><small>${label}</small><strong>${esc(value||"—")}</strong></div>`;}function openDetailModal(title,html){const modal=$("#detailModal");$("h2",modal).textContent=title;$(".detail-body",modal).innerHTML=html;modal.classList.add("show");}function closeDetail(){$("#detailModal").classList.remove("show");}function closeModal(){$("#modal").classList.remove("show");}
 
 function downloadTemplate(){if(!window.XLSX)return toast("Chưa tải được thư viện Excel");const wb=XLSX.utils.book_new();const sheets={"01_KhachHang":[["MaKH","HoTen","SoDienThoai","Email","NgaySinh","DiaChi","NguoiPhuTrach","GhiChu"]],"02_DongThe":[["CardID","NganHang","TenThe","MangThe","LoaiThe","GhiChu"]],"03_TheKhachHang":[["MaKH","CardID","HanMuc","NgaySaoKe","NgayDenHan","NgayMoThe","NgayHetHan","BonSoCuoi","TrangThai","GhiChu"]],"04_HuongDan":[["HƯỚNG DẪN NHẬP DỮ LIỆU HOST"],["MaKH và CardID phải duy nhất."],["03_TheKhachHang chỉ tham chiếu MaKH và CardID đã có."],["Ngày dùng DD-MM-YYYY hoặc YYYY-MM-DD. Ngày sao kê/đến hạn từ 1 đến 31."],["Không nhập số thẻ đầy đủ, CVV/CVC, OTP hoặc PIN."]]};Object.entries(sheets).forEach(([name,data])=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),name));XLSX.writeFile(wb,"CardFlow_Host_Import_Template.xlsx");}
@@ -101,7 +122,116 @@ async function importExcel(file){if(!file||!window.XLSX)return;const wb=XLSX.rea
   state.customers.push(...newCustomers);state.cardProducts.push(...newProducts);state.customerCards.push(...newLinks);save("Đã hoàn tất nhập Excel");const total=customers.length+products.length+links.length,success=newCustomers.length+newProducts.length+newLinks.length;const result=$("#importResult");if(result)result.innerHTML=`<div class="import-result"><p><strong>Tổng:</strong> ${total} · <strong>Thành công:</strong> ${success} · <strong>Bỏ qua:</strong> ${errors.length}</p>${errors.length?`<div class="error-list">${errors.map(x=>`<div>${esc(x)}</div>`).join("")}</div>`:"<p>Không có lỗi.</p>"}</div>`;}
 function exportJson(){const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`cardflow-host-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href);}
 
-$$('.nav-btn').forEach(btn=>btn.onclick=()=>{currentView=btn.dataset.view;$$('.nav-btn').forEach(x=>x.classList.toggle("active",x===btn));$$('.view').forEach(x=>x.classList.toggle("active",x.id===`view-${currentView}`));const subtitles={dashboard:"Tổng quan danh mục khách hàng và thẻ",customers:"Quản lý khách hàng và thẻ đang sở hữu",cards:"Quản lý dòng thẻ dùng chung",catalog:"Quản lý dữ liệu danh mục",system:"Nhập liệu, đồng bộ và sao lưu",about:"Thông tin và hướng dẫn"};$("#subtitle").textContent=subtitles[currentView];document.body.classList.remove("sidebar-open");});
-$(".menu-btn").onclick=()=>document.body.classList.add("sidebar-open");$(".backdrop").onclick=()=>document.body.classList.remove("sidebar-open");$("form",$("#modal")).onsubmit=submitForm;$$('[data-close]').forEach(x=>x.onclick=closeModal);$('[data-close-detail]').onclick=closeDetail;document.addEventListener("click",e=>{if(!e.target.closest("#contextMenu"))$("#contextMenu").hidden=true;});$("#excelFile").onchange=e=>{importExcel(e.target.files[0]).catch(err=>toast(`Không thể đọc Excel: ${err.message}`));e.target.value="";};
-$("#connectDrive").onclick=()=>sync.connect().catch(e=>toast(`Không thể kết nối: ${e.message}`));$("#syncDrive").onclick=()=>sync.syncNow().catch(e=>toast(`Đồng bộ lỗi: ${e.message}`));$("#disconnectDrive").onclick=()=>sync.disconnect();$('[data-use-remote]').onclick=()=>{if(pendingRemote)sync.useRemote(pendingRemote);$("#conflict").hidden=true;};$('[data-keep-local]').onclick=()=>sync.syncNow({forceLocal:true}).catch(e=>toast(e.message));sync.addEventListener("status",e=>{const map={disconnected:"Chưa kết nối",syncing:"Đang đồng bộ…",synced:"Đã đồng bộ",dirty:"Có thay đổi chưa đồng bộ",conflict:"Xung đột dữ liệu"};$("#driveStatus").textContent=map[e.detail.status]||e.detail.status;const meta=repo.loadMeta();$("#lastSync").textContent=meta.lastSyncAt?`Lần cuối: ${new Date(meta.lastSyncAt).toLocaleString("vi-VN")}`:"Chưa có lần đồng bộ";if(e.detail.status==="conflict"){pendingRemote=e.detail.remote;$("#conflict").hidden=false;}});
+function setSidebarOpen(open){
+  document.querySelector(".app-shell")?.classList.toggle("sidebar-open",open);
+  document.querySelector(".menu-toggle")?.setAttribute("aria-expanded",String(open));
+}
+function setSidebarExpanded(expanded){
+  document.querySelector(".app-shell")?.classList.toggle("sidebar-expanded",expanded);
+  const toggle=document.querySelector(".sidebar-toggle");
+  toggle?.setAttribute("aria-expanded",String(expanded));
+  toggle?.setAttribute("aria-label",expanded?"Thu gọn thanh điều hướng":"Mở rộng thanh điều hướng");
+  localStorage.setItem(SIDEBAR_STORAGE_KEY,String(expanded));
+}
+function setView(name){
+  currentView=name;
+  $$('.nav-btn').forEach(x=>x.classList.toggle("active",x.dataset.view===name));
+  $$('.view').forEach(x=>x.classList.toggle("active",x.id===`view-${name}`));
+  const meta=VIEW_META[name]||{title:name,description:""};
+  $(".topbar h1").textContent=meta.title;
+  $("#subtitle").textContent=meta.description;
+  setSidebarOpen(false);
+}
+function renderSyncStatus(statusOverride=""){
+  const meta=repo.loadMeta();
+  let status=statusOverride||meta.status||"disconnected";
+  if(!auth.hasToken() && status!=="error") status="disconnected";
+  const labels={disconnected:"Chưa kết nối Google Drive",syncing:"Đang đồng bộ...",synced:"Đã đồng bộ",dirty:"Có thay đổi chưa đồng bộ",conflict:"Xung đột dữ liệu",error:"Kết nối lỗi"};
+  const statusEl=$("#driveStatus");
+  statusEl.textContent=labels[status]||status;
+  statusEl.className=`drive-state ${status}`;
+  $("#lastSync").textContent=meta.lastSyncAt?`Lần cuối: ${new Date(meta.lastSyncAt).toLocaleString("vi-VN")}`:"Chưa có lần đồng bộ thành công";
+  const connected=auth.hasToken();
+  $("#connectDrive").disabled=connectingDrive||!auth.isReady()||connected;
+  $("#connectDrive").textContent=connected?"Đã kết nối":"Kết nối Google Drive";
+  $("#syncDrive").disabled=!connected||connectingDrive;
+  $("#disconnectDrive").disabled=!connected||connectingDrive;
+}
+function renderLoginGate(){
+  const connected=auth.hasToken();
+  const gate=$("#loginGate"), shell=$(".app-shell"), button=$("#gateConnectDrive"), status=$("#gateStatus");
+  gate?.classList.toggle("show",!connected);
+  shell?.classList.toggle("locked",!connected);
+  if(button){button.disabled=connectingDrive||!auth.isReady();button.textContent=connectingDrive?"Đang kết nối...":"Kết nối Google Drive";}
+  if(status){status.textContent=authMessage;status.classList.toggle("ok",connected);}
+}
+function connectionMessage(error){
+  const code=String(error?.message||"");
+  if(code==="missing-client-id") return "Chưa cấu hình Google OAuth Client ID cho app Host.";
+  if(code==="gis-not-loaded") return "Chưa tải được dịch vụ đăng nhập Google. Vui lòng tải lại trang.";
+  if(code==="popup_closed"||code==="popup_failed_to_open") return "Cửa sổ đăng nhập Google đã bị đóng hoặc bị trình duyệt chặn.";
+  if(code==="access_denied") return "Tài khoản Google chưa cấp quyền truy cập Drive cho app Host.";
+  return `Không thể kết nối Google Drive${code?`: ${code}`:"."}`;
+}
+async function connectGoogleDriveFromUi(){
+  if(connectingDrive) return;
+  if(!auth.isReady()){
+    authMessage="Chưa tải được dịch vụ đăng nhập Google. Vui lòng tải lại trang.";
+    renderLoginGate();renderSyncStatus("error");return;
+  }
+  connectingDrive=true;authMessage="Đang kết nối Google Drive...";renderLoginGate();renderSyncStatus("syncing");
+  try{
+    await sync.connect();
+    authMessage="";
+    state=repo.load();
+    render();setView("dashboard");renderSyncStatus();toast("Đã kết nối Google Drive");
+  }catch(error){
+    authMessage=connectionMessage(error);
+    auth.disconnect();
+    renderSyncStatus("error");toast(authMessage);
+  }finally{
+    connectingDrive=false;renderLoginGate();renderSyncStatus();
+  }
+}
+function watchGoogleSdkReadiness(){
+  let attempts=0;
+  const timer=setInterval(()=>{attempts+=1;renderLoginGate();renderSyncStatus();if(auth.isReady()||attempts>=100)clearInterval(timer);},100);
+}
+
+$$('.nav-btn').forEach(btn=>{
+  btn.insertAdjacentHTML('afterbegin',icon(btn.dataset.icon));
+  btn.title=btn.querySelector('.nav-label')?.textContent||'';
+  btn.onclick=()=>setView(btn.dataset.view);
+});
+$('.menu-toggle')?.insertAdjacentHTML('afterbegin',icon('menu'));
+$('.sidebar-toggle')?.insertAdjacentHTML('afterbegin',icon('menu'));
+$('.sidebar-close')?.insertAdjacentHTML('afterbegin',icon('x'));
+$('.menu-toggle')?.addEventListener('click',()=>setSidebarOpen(!$('.app-shell')?.classList.contains('sidebar-open')));
+$('.sidebar-toggle')?.addEventListener('click',()=>setSidebarExpanded(!$('.app-shell')?.classList.contains('sidebar-expanded')));
+$('.sidebar-close')?.addEventListener('click',()=>setSidebarOpen(false));
+$('.sidebar-backdrop')?.addEventListener('click',()=>setSidebarOpen(false));
+$('form',$('#modal')).onsubmit=submitForm;
+$$('[data-close]').forEach(x=>x.onclick=closeModal);
+$('[data-close-detail]').onclick=closeDetail;
+document.addEventListener('click',e=>{if(!e.target.closest('#contextMenu'))$('#contextMenu').hidden=true;});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')setSidebarOpen(false);});
+$('#excelFile').onchange=e=>{importExcel(e.target.files[0]).catch(err=>toast(`Không thể đọc Excel: ${err.message}`));e.target.value='';};
+$('#gateConnectDrive').onclick=()=>connectGoogleDriveFromUi();
+$('#connectDrive').onclick=()=>connectGoogleDriveFromUi();
+$('#syncDrive').onclick=()=>sync.syncNow().then(()=>{renderSyncStatus();toast('Đã đồng bộ');}).catch(e=>toast(`Đồng bộ lỗi: ${e.message}`));
+$('#disconnectDrive').onclick=()=>{sync.disconnect();authMessage='';renderSyncStatus();renderLoginGate();toast('Đã ngắt kết nối Google Drive');};
+$('[data-use-remote]').onclick=()=>{if(pendingRemote)sync.useRemote(pendingRemote);$('#conflict').hidden=true;renderSyncStatus();};
+$('[data-keep-local]').onclick=()=>sync.syncNow({forceLocal:true}).then(()=>renderSyncStatus()).catch(e=>toast(e.message));
+sync.addEventListener('status',e=>{
+  renderSyncStatus(e.detail.status);
+  if(e.detail.status==='conflict'){pendingRemote=e.detail.remote;$('#conflict').hidden=false;}
+});
+
+const savedSidebar=localStorage.getItem(SIDEBAR_STORAGE_KEY);
+setSidebarExpanded(savedSidebar===null?true:savedSidebar==='true');
 render();
+setView('dashboard');
+renderSyncStatus();
+renderLoginGate();
+watchGoogleSdkReadiness();
+

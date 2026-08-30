@@ -15,7 +15,7 @@ export function canonicalize(input={}){
 }
 export class LocalRepository{
   load(){ try{return canonicalize(JSON.parse(localStorage.getItem(DATA_KEY)||"{}"));}catch{return canonicalize({});} }
-  save(data,{dirty=true}={}){ const saved=canonicalize({...data,updatedAt:new Date().toISOString()}); localStorage.setItem(DATA_KEY,JSON.stringify(saved)); this.saveMeta({...this.loadMeta(),dirty,deviceId:saved.deviceId}); return saved; }
+  save(data,{dirty=true}={}){ const saved=canonicalize({...data,updatedAt:new Date().toISOString()}); localStorage.setItem(DATA_KEY,JSON.stringify(saved)); this.saveMeta({...this.loadMeta(),dirty,deviceId:saved.deviceId,status:dirty?"dirty":this.loadMeta().status}); return saved; }
   loadMeta(){ try{return {fileId:"",baseRevision:0,dirty:false,lastSyncAt:"",status:"disconnected",...JSON.parse(localStorage.getItem(META_KEY)||"{}")};}catch{return {fileId:"",baseRevision:0,dirty:false,lastSyncAt:"",status:"disconnected"};} }
   saveMeta(meta){localStorage.setItem(META_KEY,JSON.stringify(meta));}
   markClean(revision){this.saveMeta({...this.loadMeta(),baseRevision:revision,dirty:false,lastSyncAt:new Date().toISOString(),status:"synced"});}

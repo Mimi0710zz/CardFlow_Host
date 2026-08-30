@@ -1,19 +1,115 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CardFlow Host</title><link rel="stylesheet" href="styles.css"></head>
-<body><div class="app-shell">
-  <aside class="sidebar" id="sidebar"><div class="brand"><span class="brand-logo">HF</span><div><strong>CARDFLOW HOST</strong><small>Quản lý danh mục thẻ</small></div></div>
-    <nav><span>Tổng quan</span><button class="nav-btn active" data-view="dashboard">▦ <b>Tổng hợp</b></button><span>Quản lý</span><button class="nav-btn" data-view="customers">♙ <b>Khách hàng</b></button><button class="nav-btn" data-view="cards">▭ <b>Thẻ</b></button><span>Danh mục & Hệ thống</span><button class="nav-btn" data-view="catalog">⌘ <b>Danh mục</b></button><button class="nav-btn" data-view="system">⚙ <b>Hệ thống</b></button><button class="nav-btn" data-view="about">? <b>Giới thiệu</b></button></nav>
-    <small>Dữ liệu Host độc lập, lưu local-first và có thể đồng bộ Google Drive.</small>
-  </aside>
-  <button class="backdrop" aria-label="Đóng menu"></button>
-  <main><header class="topbar"><button class="menu-btn" aria-label="Mở menu">☰</button><div><h1>CARDFLOW HOST</h1><p id="subtitle">Tổng quan danh mục khách hàng và thẻ</p></div></header>
-    <section class="drive-panel"><div><strong>☁ Google Drive</strong><span id="driveStatus">Chưa kết nối</span><small id="lastSync">Chưa có lần đồng bộ</small></div><div class="actions"><button id="connectDrive" class="primary">Kết nối</button><button id="syncDrive">Đồng bộ ngay</button><button id="disconnectDrive">Ngắt kết nối</button></div></section>
-    <section id="conflict" class="conflict" hidden><span>Dữ liệu Drive đã thay đổi trên thiết bị khác.</span><button data-use-remote>Tải bản Drive</button><button class="primary" data-keep-local>Giữ bản máy này</button></section>
-    <section id="view-dashboard" class="view active"></section><section id="view-customers" class="view"></section><section id="view-cards" class="view"></section><section id="view-catalog" class="view"></section><section id="view-system" class="view"></section><section id="view-about" class="view"></section>
-  </main></div>
-  <div id="modal" class="modal"><form class="modal-card"><div class="modal-head"><h2></h2><button type="button" data-close>×</button></div><div class="modal-body"></div><div class="form-actions"><button type="button" data-close>Hủy</button><button class="primary" type="submit">Lưu</button></div></form></div>
-  <div id="detailModal" class="modal"><section class="modal-card detail-card"><div class="modal-head"><h2></h2><button type="button" data-close-detail>×</button></div><div class="detail-body"></div></section></div>
-  <div id="contextMenu" class="context-menu" hidden></div><div id="toast" class="toast"></div>
-  <input id="excelFile" type="file" accept=".xlsx,.xls" hidden>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="https://accounts.google.com/gsi/client" async defer></script><script src="hostflow.config.js"></script><script type="module" src="app.js"></script>
-</body></html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QUẢN LÝ THẺ - HOST</title>
+  <meta name="application-name" content="QUẢN LÝ THẺ - HOST" />
+  <link rel="icon" type="image/png" href="assets/app-logo.png?v=20260830-host-ui" />
+  <link rel="stylesheet" href="styles.css?v=20260830-host-ui" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="appSidebar" aria-label="Điều hướng chính">
+      <div class="sidebar-header">
+        <button class="sidebar-toggle" type="button" aria-label="Mở rộng thanh điều hướng" aria-controls="appSidebar" aria-expanded="true"></button>
+        <button class="sidebar-close" type="button" aria-label="Đóng menu"></button>
+      </div>
+      <div class="brand" title="QUẢN LÝ THẺ - HOST">
+        <img class="brand-mark" src="assets/app-logo.png?v=20260830-host-ui" alt="Logo QUẢN LÝ THẺ - HOST" />
+        <div class="brand-copy">
+          <strong>QUẢN LÝ THẺ - HOST</strong>
+          <span>Quản lý khách hàng &amp; thẻ</span>
+        </div>
+      </div>
+      <nav>
+        <span class="nav-section">Tổng quan</span>
+        <button class="nav-btn active" data-view="dashboard" data-icon="layout-dashboard"><span class="nav-label">Tổng hợp</span></button>
+        <span class="nav-section">Quản lý</span>
+        <button class="nav-btn" data-view="customers" data-icon="users"><span class="nav-label">Khách hàng</span></button>
+        <button class="nav-btn" data-view="cards" data-icon="credit-card"><span class="nav-label">Thẻ</span></button>
+        <span class="nav-section">Danh mục &amp; Hệ thống</span>
+        <button class="nav-btn" data-view="catalog" data-icon="table-properties"><span class="nav-label">Danh mục</span></button>
+        <button class="nav-btn" data-view="system" data-icon="settings"><span class="nav-label">Hệ thống</span></button>
+        <button class="nav-btn" data-view="about" data-icon="circle-help"><span class="nav-label">Giới thiệu</span></button>
+      </nav>
+      <small>Dữ liệu Host độc lập, lưu local-first và có thể đồng bộ Google Drive.</small>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <button class="menu-toggle" type="button" aria-label="Mở menu" aria-controls="appSidebar" aria-expanded="false"></button>
+        <div class="topbar-copy">
+          <div class="page-heading"><h1>Tổng hợp</h1></div>
+          <p id="subtitle">Tổng quan danh mục khách hàng và thẻ</p>
+        </div>
+      </header>
+
+      <section class="drive-panel">
+        <div>
+          <strong>☁ Google Drive</strong>
+          <span id="driveStatus" class="drive-state disconnected">Chưa kết nối Google Drive</span>
+          <small id="lastSync">Chưa có lần đồng bộ thành công</small>
+        </div>
+        <div class="drive-actions">
+          <button id="connectDrive" class="primary">Kết nối Google Drive</button>
+          <button id="syncDrive" class="secondary-btn">Đồng bộ ngay</button>
+          <button id="disconnectDrive" class="secondary-btn">Ngắt kết nối</button>
+        </div>
+      </section>
+
+      <section id="conflict" class="conflict-bar" hidden>
+        <span>Dữ liệu Drive đã thay đổi trên thiết bị khác.</span>
+        <button class="secondary-btn" data-use-remote>Tải bản Drive</button>
+        <button class="primary" data-keep-local>Giữ bản máy này</button>
+      </section>
+
+      <section id="view-dashboard" class="view active"></section>
+      <section id="view-customers" class="view"></section>
+      <section id="view-cards" class="view"></section>
+      <section id="view-catalog" class="view"></section>
+      <section id="view-system" class="view"></section>
+      <section id="view-about" class="view"></section>
+    </main>
+    <button class="sidebar-backdrop" type="button" aria-label="Đóng menu" tabindex="-1"></button>
+  </div>
+
+  <div id="loginGate" class="login-gate show">
+    <section class="login-card">
+      <div class="brand gate-brand">
+        <img class="brand-mark" src="assets/app-logo.png?v=20260830-host-ui" alt="Logo QUẢN LÝ THẺ - HOST" />
+        <div>
+          <strong>QUẢN LÝ THẺ - HOST</strong>
+          <span>Quản lý danh mục khách hàng và thẻ</span>
+        </div>
+      </div>
+      <p>Đăng nhập Google để đồng bộ dữ liệu Host trên mọi thiết bị.</p>
+      <button id="gateConnectDrive" class="primary">Kết nối Google Drive</button>
+      <small>Dữ liệu Host được lưu trong Google Drive của chính tài khoản đã cấp quyền.</small>
+      <div id="gateStatus" class="gate-status"></div>
+    </section>
+  </div>
+
+  <div id="modal" class="modal">
+    <form class="modal-card">
+      <div class="modal-head"><h2></h2><button type="button" data-close>×</button></div>
+      <div class="modal-body"></div>
+      <div class="form-actions"><button type="button" class="secondary-btn" data-close>Hủy</button><button class="primary" type="submit">Lưu</button></div>
+    </form>
+  </div>
+  <div id="detailModal" class="modal">
+    <section class="modal-card detail-card">
+      <div class="modal-head"><h2></h2><button type="button" data-close-detail>×</button></div>
+      <div class="detail-body"></div>
+    </section>
+  </div>
+  <div id="contextMenu" class="context-menu" hidden></div>
+  <div id="toast" class="toast"></div>
+  <input id="excelFile" type="file" accept=".xlsx,.xls" hidden />
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="hostflow.config.js"></script>
+  <script type="module" src="app.js?v=20260830-host-ui"></script>
+</body>
+</html>
