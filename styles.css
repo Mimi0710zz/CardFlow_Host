@@ -188,4 +188,6 @@ button{border:1px solid var(--line);border-radius:9px;padding:9px 13px;backgroun
 .about-card h3{font-size:15px}.about-main{grid-row:span 2}
 .platform-list{display:flex;gap:8px;flex-wrap:wrap}.platform-list span{background:#eef3f8;color:#274563;border:1px solid #d7e3f0;border-radius:999px;padding:7px 10px;font-size:13px;font-weight:700}
 .author-card{display:grid;align-content:start;gap:7px}.author-card>strong{font-size:18px;color:var(--nav2)}.author-card>span{margin-top:5px;color:var(--muted);font-size:12px;font-weight:700}.author-card a{color:var(--accent);font-weight:700;overflow-wrap:anywhere}
+.about-layout{grid-template-columns:repeat(2,minmax(0,1fr));max-width:none}.about-main{grid-row:auto}.guide-list{max-width:none}
+@media(max-width:900px){.about-layout{grid-template-columns:1fr}}
 @media(max-width:767px){.help-tabs{grid-template-columns:repeat(2,minmax(0,1fr));width:100%}.help-tabs button{padding:9px 6px}.about-main{grid-row:auto}}
