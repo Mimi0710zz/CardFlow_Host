@@ -171,6 +171,8 @@ function connectionMessage(error){
   if(code==="gis-not-loaded") return "Chưa tải được dịch vụ đăng nhập Google. Vui lòng tải lại trang.";
   if(code==="popup_closed"||code==="popup_failed_to_open") return "Cửa sổ đăng nhập Google đã bị đóng hoặc bị trình duyệt chặn.";
   if(code==="access_denied") return "Tài khoản Google chưa cấp quyền truy cập Drive cho app Host.";
+  if(code==="drive-404") return "Liên kết file Drive cũ không còn hợp lệ. App đang dùng cơ chế tự tìm hoặc tạo lại file Host; hãy tải lại trang và kết nối lại.";
+  if(code==="drive-403") return "Google Drive API từ chối quyền truy cập. Hãy kiểm tra Drive API đã Enable và tài khoản đang nằm trong Test users.";
   return `Không thể kết nối Google Drive${code?`: ${code}`:"."}`;
 }
 async function connectGoogleDriveFromUi(){
