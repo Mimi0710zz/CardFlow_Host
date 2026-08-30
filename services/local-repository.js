@@ -1,7 +1,7 @@
 import {createEmptyData} from "./default-data.js?v=20260830-customer-tagsv5";
 import {parseMoney} from "./money.js";
 import {toStorageDate} from "./date.js";
-import {normalizeCardBrand,normalizeCardRank,normalizeOwnershipType} from "./card-types.js?v=20260831-cardmasterv7";
+import {normalizeCardBrand,normalizeCardRank,normalizeOwnershipType} from "./card-types.js?v=20260831-cardranksv8";
 const DATA_KEY="cardflow-host-data-v1", META_KEY="cardflow-host-sync-meta-v1";
 export const uuid = () => crypto.randomUUID?.() || `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const text = value => String(value ?? "").trim();

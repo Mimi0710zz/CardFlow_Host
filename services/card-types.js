@@ -1,5 +1,5 @@
 export const CARD_BRANDS=["American Express","JCB","MasterCard","NAPAS","Union Pay","Visa"];
-export const CARD_RANKS=["Classic","Standard","Gold","Platinum","Infinite","Black Card"];
+export const CARD_RANKS=["Classic/Standard","Gold","Platinum","Signature","Infinite/Back Card"];
 export const OWNERSHIP_TYPES=["credit","debit"];
 
 const STANDARD_BRANDS=new Map([
@@ -20,8 +20,10 @@ export function normalizeCardBrand(value){
 }
 
 export function normalizeCardRank(value){
-  const text=String(value??"").trim(),match=CARD_RANKS.find(item=>item.toLocaleLowerCase("vi")===text.toLocaleLowerCase("vi"));
-  return match||"Standard";
+  const text=String(value??"").trim(),key=text.toLocaleLowerCase("vi");
+  if(key==="classic"||key==="standard"||key==="classic/standard")return "Classic/Standard";
+  if(key==="infinite"||key==="black card"||key==="blackcard"||key==="infinite/black card"||key==="infinite/back card")return "Infinite/Back Card";
+  return CARD_RANKS.find(item=>item.toLocaleLowerCase("vi")===key)||"Classic/Standard";
 }
 
 export function normalizeOwnershipType(value){
