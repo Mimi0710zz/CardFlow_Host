@@ -1,10 +1,10 @@
-import {LocalRepository,uuid} from "./services/local-repository.js?v=20260830-autosync-cardsv4";
+import {LocalRepository,uuid} from "./services/local-repository.js?v=20260830-customer-tagsv5";
 import {DriveAuth} from "./services/drive-auth.js?v=20260830-customercardsv3";
 import {DriveRepository} from "./services/drive-repository.js?v=20260830-customercardsv3";
-import {SyncService} from "./services/sync-service.js?v=20260830-autosync-cardsv4";
-import {formatMoney,parseMoney,formatVndInput,bindVndInput} from "./services/money.js?v=20260830-autosync-cardsv4";
+import {SyncService} from "./services/sync-service.js?v=20260830-customer-tagsv5";
+import {formatMoney,parseMoney,formatVndInput,bindVndInput} from "./services/money.js?v=20260830-customer-tagsv5";
 import {formatDate,formatDay,toStorageDate} from "./services/date.js?v=20260830-customercardsv3";
-import {compareText,sortByLabel,compareCards,compareCustomers} from "./services/sorting.js?v=20260830-autosync-cardsv4";
+import {compareText,sortByLabel,compareCards,compareCustomers} from "./services/sorting.js?v=20260830-customer-tagsv5";
 
 const $=(selector,root=document)=>root.querySelector(selector), $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
 const repo=new LocalRepository(); let state=repo.load(), currentView="dashboard", filters={}, sorts={}, pendingRemote=null;
@@ -50,35 +50,37 @@ function generateCustomerCode(){
   do{code=`KH-${String(index).padStart(4,"0")}`;index+=1;}while(used.has(code));
   return code;
 }
-function dayOptions(value=""){return `<option value="">-- Chọn --</option>`+Array.from({length:31},(_,i)=>i+1).map(day=>`<option value="${day}" ${Number(value)===day?"selected":""}>${day}</option>`).join("");}
+function dayOptions(value=""){return `<option value="">-- Chọn --</option>`+Array.from({length:31},(_,i)=>i+1).map(day=>`<option value="${day}" ${Number(value)===day?"selected":""}>Ngày ${day}</option>`).join("");}
 const DEFAULT_CARD_BRANDS=["American Express","JCB","Mastercard","Napas","Visa"];
 const CARD_FORMS=["Phi vật lý","Vật lý"];
 const cardBrandValues=()=>[...new Set([...DEFAULT_CARD_BRANDS,...state.cardProducts.flatMap(x=>[x.cardBrand,x.network]).filter(Boolean)])].sort(compareText);
 const textValueOptions=(values,value,placeholder="-- Chọn --")=>`<option value="">${placeholder}</option>`+values.slice().sort(compareText).map(item=>`<option value="${esc(item)}" ${item===value?"selected":""}>${esc(item)}</option>`).join("");
 const sortedCardProducts=()=>[...state.cardProducts].sort((a,b)=>compareCards(a,b,x=>bank(x.bankId)?.name||""));
+const sortedCardProductsById=()=>[...state.cardProducts].sort((a,b)=>compareText(a.cardId,b.cardId));
 const bankOptions=value=>`<option value="">-- Chọn --</option>`+sortByLabel(state.banks,x=>x.name).map(x=>`<option value="${esc(x.id)}" ${x.id===value?"selected":""}>${esc(`${x.code} — ${x.name}`)}</option>`).join("");
 const customerOptions=value=>`<option value="">-- Chọn --</option>`+[...state.customers].sort(compareCustomers).map(x=>`<option value="${esc(x.id)}" ${x.id===value?"selected":""}>${esc(`${x.customerCode} — ${x.fullName}`)}</option>`).join("");
 function customerCardProductOptions(value=""){
-  const products=sortedCardProducts();
-  return `<option value="">-- Chọn thẻ --</option>`+products.map(p=>`<option value="${esc(p.id)}" ${p.id===value?"selected":""}>${esc(`${p.cardId||""} — ${bank(p.bankId)?.name||""} — ${p.cardName||""}`)}</option>`).join("");
+  return `<option value="">-- Chọn thẻ --</option>`+sortedCardProductsById().map(p=>`<option value="${esc(p.id)}" ${p.id===value?"selected":""}>${esc(p.cardId||"")}</option>`).join("");
 }
 function customerCreditLimitOptions(){
   const values=[...new Set(state.customerCards.map(x=>Number(x.creditLimit)||0).filter(x=>x>0))].sort((a,b)=>a-b);
   return values.map(value=>`<option value="${esc(formatMoney(value))}"></option>`).join("");
 }
+function sharedLimitChip(productId){
+  const card=product(productId);return card?`<span class="shared-limit-chip" data-shared-chip="${esc(card.id)}"><span>${esc(card.cardId)}</span><button type="button" data-remove-shared-chip aria-label="Bỏ ${esc(card.cardId)}">×</button></span>`:"";
+}
 function sharedLimitControl(link={}){
-  const selected=new Set(link.sharedLimitCardIds||[]);
-  return `<details class="shared-limit" data-shared-limit><summary>${selected.size?`${selected.size} thẻ đã chọn`:"Không"}</summary><div class="shared-limit-menu"><label><input type="checkbox" data-shared-none ${selected.size?"":"checked"}> Không</label>${sortedCardProducts().map(p=>`<label data-shared-option="${esc(p.id)}"><input type="checkbox" value="${esc(p.id)}" ${selected.has(p.id)?"checked":""}> <span>${esc(`${bank(p.bankId)?.name||""} — ${p.cardName||""} — ${p.cardId||""}`)}</span></label>`).join("")}</div></details>`;
+  const selected=[...new Set(link.sharedLimitCardIds||[])].filter(id=>product(id)&&id!==link.cardProductId);
+  return `<div class="shared-limit-tags" data-shared-limit>${selected.map(sharedLimitChip).join("")}<input type="text" data-shared-search autocomplete="off" placeholder="Không / Tìm CardID..." aria-label="Tìm CardID chung hạn mức"><div class="shared-limit-suggestions" data-shared-suggestions hidden></div></div>`;
 }
 function customerCardRow(link={}){
   const master=product(link.cardProductId);
   return `<div class="customer-card-row" data-link-id="${esc(link.id||"")}">
     <div class="customer-card-cell card-choice"><label>Thẻ</label><select data-card-product>${customerCardProductOptions(link.cardProductId||"")}</select></div>
-    <div class="customer-card-cell"><label>Loại thẻ</label><select data-card-brand>${textValueOptions(cardBrandValues(),link.cardBrand||master?.cardBrand||master?.network||"")}</select></div>
-    <div class="customer-card-cell"><label>Hình thức thẻ</label><select data-card-form>${textValueOptions(CARD_FORMS,link.cardForm||master?.cardForm||"")}</select></div>
+    <div class="customer-card-cell form-cell"><label>Hình thức thẻ</label><input data-card-form type="text" value="${esc(master?.cardForm||link.cardForm||"Vật lý")}" readonly></div>
     <div class="customer-card-cell money-cell"><label>Hạn mức</label><input data-credit-limit type="text" inputmode="numeric" list="customerCreditLimitOptions" value="${esc(link.creditLimit!==undefined&&link.creditLimit!==""?formatVndInput(link.creditLimit):"")}" placeholder="0 đ"></div>
-    <div class="customer-card-cell"><label>Ngày sao kê</label><select data-statement-day>${dayOptions(link.statementDay)}</select></div>
-    <div class="customer-card-cell"><label>Hạn thanh toán</label><select data-payment-due-day>${dayOptions(link.paymentDueDay)}</select></div>
+    <div class="customer-card-cell statement-cell"><label>Ngày sao kê</label><select data-statement-day>${dayOptions(link.statementDay)}</select></div>
+    <div class="customer-card-cell payment-cell"><label>Hạn thanh toán</label><select data-payment-due-day>${dayOptions(link.paymentDueDay)}</select></div>
     <div class="customer-card-cell shared-cell"><label>Chung hạn mức</label>${sharedLimitControl(link)}</div>
     <button type="button" class="customer-card-remove" data-remove-customer-card aria-label="Xóa dòng thẻ" title="Xóa dòng thẻ">×</button>
   </div>`;
@@ -100,19 +102,34 @@ function bindCustomerCardEditor(root){
     $$(".customer-card-row",rows).forEach(row=>{
       const current=$("[data-card-product]",row)?.value;
       $$('[data-card-product] option',row).forEach(option=>{option.disabled=Boolean(option.value&&option.value!==current&&selected.has(option.value));});
-      $$('[data-shared-option]',row).forEach(label=>{
-        const id=label.dataset.sharedOption;
-        label.hidden=id===current||!selected.has(id);
-        if(label.hidden)$("input",label).checked=false;
-      });
-      updateSharedSummary(row);
+      $("[data-shared-limit]",row)?._refresh?.();
     });
   };
-  const updateSharedSummary=row=>{
-    const control=$("[data-shared-limit]",row);if(!control)return;
-    const checked=$$('input[type="checkbox"]:checked',control).filter(x=>!x.hasAttribute("data-shared-none"));
-    $("summary",control).textContent=checked.length?`${checked.length} thẻ đã chọn`:"Không";
-    $("[data-shared-none]",control).checked=!checked.length;
+  const bindSharedTagInput=row=>{
+    const control=$("[data-shared-limit]",row),input=$("[data-shared-search]",row),suggestions=$("[data-shared-suggestions]",row);if(!control||!input||!suggestions)return;
+    let activeIndex=-1;
+    const selectedIds=()=>new Set($$("[data-shared-chip]",control).map(chip=>chip.dataset.sharedChip));
+    const updatePlaceholder=()=>{input.placeholder=selectedIds().size?"Tìm thêm CardID...":"Không / Tìm CardID...";};
+    const bindChip=chip=>{$("[data-remove-shared-chip]",chip).onclick=()=>{chip.remove();updatePlaceholder();renderSuggestions();input.focus();};};
+    const addChip=id=>{if(!id||selectedIds().has(id)||id===$("[data-card-product]",row)?.value)return;const html=sharedLimitChip(id);if(!html)return;input.insertAdjacentHTML("beforebegin",html);bindChip(input.previousElementSibling);input.value="";updatePlaceholder();renderSuggestions();input.focus();};
+    const removeChip=id=>{const chip=$$("[data-shared-chip]",control).find(item=>item.dataset.sharedChip===id);if(chip)chip.remove();updatePlaceholder();};
+    const renderSuggestions=()=>{
+      const query=normalize(input.value),current=$("[data-card-product]",row)?.value,selected=selectedIds();
+      const matches=sortedCardProductsById().filter(card=>card.id!==current&&!selected.has(card.id)&&(!query||normalize(card.cardId).includes(query)));
+      activeIndex=-1;suggestions.innerHTML=matches.map(card=>`<button type="button" data-shared-suggestion="${esc(card.id)}">${esc(card.cardId)}</button>`).join("");
+      suggestions.hidden=!matches.length||document.activeElement!==input;
+      $$('[data-shared-suggestion]',suggestions).forEach(button=>button.onclick=()=>addChip(button.dataset.sharedSuggestion));
+    };
+    $$("[data-shared-chip]",control).forEach(bindChip);
+    input.onfocus=renderSuggestions;input.oninput=renderSuggestions;input.onblur=()=>setTimeout(()=>{suggestions.hidden=true;},120);
+    input.onkeydown=event=>{
+      const choices=$$('[data-shared-suggestion]',suggestions);
+      if((event.key==="ArrowDown"||event.key==="ArrowUp")&&choices.length){event.preventDefault();activeIndex=(activeIndex+(event.key==="ArrowDown"?1:-1)+choices.length)%choices.length;choices.forEach((choice,index)=>choice.classList.toggle("active",index===activeIndex));}
+      else if(event.key==="Enter"&&activeIndex>=0){event.preventDefault();addChip(choices[activeIndex]?.dataset.sharedSuggestion);}
+      else if(event.key==="Escape")suggestions.hidden=true;
+      else if(event.key==="Backspace"&&!input.value){const chips=$$("[data-shared-chip]",control);if(chips.length){chips.at(-1).remove();updatePlaceholder();renderSuggestions();}}
+    };
+    control.onclick=event=>{if(event.target===control)input.focus();};control._refresh=renderSuggestions;control._remove=removeChip;updatePlaceholder();
   };
   const bindRow=row=>{
     const money=$("[data-credit-limit]",row);
@@ -120,15 +137,11 @@ function bindCustomerCardEditor(root){
     const cardSelect=$("[data-card-product]",row);
     if(cardSelect)cardSelect.onchange=()=>{
       const master=product(cardSelect.value);
-      if(master){$("[data-card-brand]",row).value=master.cardBrand||master.network||"";$("[data-card-form]",row).value=master.cardForm||"Vật lý";}
+      $("[data-card-form]",row).value=master?.cardForm||"";
+      $("[data-shared-limit]",row)?._remove?.(cardSelect.value);
       refreshChoices();
     };
-    const shared=$("[data-shared-limit]",row);
-    if(shared)$$('input[type="checkbox"]',shared).forEach(input=>input.onchange=()=>{
-      if(input.hasAttribute("data-shared-none")&&input.checked)$$('input[type="checkbox"]',shared).filter(x=>x!==input).forEach(x=>{x.checked=false;});
-      if(!input.hasAttribute("data-shared-none")&&input.checked)$("[data-shared-none]",shared).checked=false;
-      updateSharedSummary(row);
-    });
+    bindSharedTagInput(row);
     const remove=$("[data-remove-customer-card]",row);
     if(remove)remove.onclick=()=>{
       const all=$$(".customer-card-row",rows);
@@ -137,6 +150,8 @@ function bindCustomerCardEditor(root){
         $("[data-credit-limit]",row).value="";
         $("[data-statement-day]",row).value="";
         $("[data-payment-due-day]",row).value="";
+        $$("[data-shared-chip]",row).forEach(chip=>chip.remove());
+        $("[data-shared-search]",row).placeholder="Không / Tìm CardID...";
         row.dataset.linkId="";
       }else row.remove();
       refreshChoices();
@@ -209,12 +224,12 @@ function openForm(entity,id=null,preset={}){const modal=$("#modal"),form=$("form
 }
 function statusOptions(value){const current=value||"active";return [["active","Đang hoạt động"],["closed","Đã đóng"],["inactive","Ngừng hoạt động"]].sort((a,b)=>compareText(a[1],b[1])).map(([key,label])=>`<option value="${key}" ${key===current?"selected":""}>${label}</option>`).join("");}
 function normalizeSharedLimitGroups(links){
-  const byProduct=new Map(links.map(link=>[link.cardProductId,link])),parent=new Map(links.map(link=>[link.cardProductId,link.cardProductId]));
+  const byProduct=new Map(links.map(link=>[link.cardProductId,link])),allIds=new Set(links.flatMap(link=>[link.cardProductId,...(link.sharedLimitCardIds||[])]).filter(id=>product(id))),parent=new Map([...allIds].map(id=>[id,id]));
   const find=id=>{const current=parent.get(id);if(!current)return null;if(current!==id)parent.set(id,find(current));return parent.get(id);};
   const join=(left,right)=>{const a=find(left),b=find(right);if(a&&b&&a!==b)parent.set(b,a);};
   links.forEach(link=>(link.sharedLimitCardIds||[]).forEach(id=>join(link.cardProductId,id)));
-  const groups=new Map();links.forEach(link=>{const root=find(link.cardProductId);if(!groups.has(root))groups.set(root,[]);groups.get(root).push(link.cardProductId);});
-  groups.forEach(ids=>ids.forEach(id=>{byProduct.get(id).sharedLimitCardIds=ids.filter(other=>other!==id).sort(compareText);}));
+  const groups=new Map();allIds.forEach(id=>{const root=find(id);if(!groups.has(root))groups.set(root,[]);groups.get(root).push(id);});
+  groups.forEach(ids=>ids.forEach(id=>{if(byProduct.has(id))byProduct.get(id).sharedLimitCardIds=ids.filter(other=>other!==id).sort((a,b)=>compareText(product(a)?.cardId,product(b)?.cardId));}));
 }
 function submitForm(event){event.preventDefault();const form=event.currentTarget,entity=form.dataset.entity,id=form.dataset.id,data=Object.fromEntries(new FormData(form));const now=new Date().toISOString();
   if(entity==="customer"){
@@ -224,12 +239,11 @@ function submitForm(event){event.preventDefault();const form=event.currentTarget
     const cardRows=$$(".customer-card-row",form).map(row=>({
       linkId:row.dataset.linkId||"",
       cardProductId:$("[data-card-product]",row)?.value||"",
-      cardBrand:$("[data-card-brand]",row)?.value||"",
       cardForm:$("[data-card-form]",row)?.value||"",
       creditLimitRaw:$("[data-credit-limit]",row)?.value?.trim()||"",
       statementDay:$("[data-statement-day]",row)?.value||"",
       paymentDueDay:$("[data-payment-due-day]",row)?.value||"",
-      sharedLimitCardIds:$$('[data-shared-option] input:checked',row).map(x=>x.value)
+      sharedLimitCardIds:$$('[data-shared-chip]',row).map(x=>x.dataset.sharedChip)
     }));
     const meaningful=cardRows.filter(row=>row.cardProductId||row.creditLimitRaw||row.statementDay||row.paymentDueDay);
     if(meaningful.some(row=>!row.cardProductId))return toast("Hãy chọn thẻ cho tất cả các dòng đã nhập");
@@ -243,7 +257,7 @@ function submitForm(event){event.preventDefault();const form=event.currentTarget
     const nextLinks=meaningful.map(row=>{
       const previous=previousLinks.get(row.linkId)||{};
       const master=product(row.cardProductId);
-      return {...previous,id:previous.id||uuid(),customerId,cardProductId:row.cardProductId,cardBrand:row.cardBrand||master?.cardBrand||master?.network||"",cardForm:row.cardForm||master?.cardForm||"Vật lý",creditLimit:parseMoney(row.creditLimitRaw),statementDay:row.statementDay?Number(row.statementDay):"",paymentDueDay:row.paymentDueDay?Number(row.paymentDueDay):"",sharedLimitCardIds:row.sharedLimitCardIds.filter(value=>value!==row.cardProductId),openingDate:previous.openingDate||"",expiryDate:previous.expiryDate||"",last4Digits:previous.last4Digits||"",status:previous.status||"active",notes:previous.notes||"",createdAt:previous.createdAt||now,updatedAt:now};
+      return {...previous,id:previous.id||uuid(),customerId,cardProductId:row.cardProductId,cardBrand:previous.cardBrand||master?.cardBrand||master?.network||"",cardForm:master?.cardForm||row.cardForm||"Vật lý",creditLimit:parseMoney(row.creditLimitRaw),statementDay:row.statementDay?Number(row.statementDay):"",paymentDueDay:row.paymentDueDay?Number(row.paymentDueDay):"",sharedLimitCardIds:row.sharedLimitCardIds.filter(value=>value!==row.cardProductId),openingDate:previous.openingDate||"",expiryDate:previous.expiryDate||"",last4Digits:previous.last4Digits||"",status:previous.status||"active",notes:previous.notes||"",createdAt:previous.createdAt||now,updatedAt:now};
     });
     normalizeSharedLimitGroups(nextLinks);
     state.customerCards=state.customerCards.filter(x=>x.customerId!==customerId);

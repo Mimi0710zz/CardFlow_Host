@@ -14,6 +14,8 @@ assert.deepEqual(legacy.customerCards[0].sharedLimitCardIds,[]);
 assert.equal(legacy.customerCards[0].creditLimit,1_000_000);
 const shared=canonicalize({banks:[{id:"b",code:"B",name:"Bank"}],customers:[{id:"c",customerCode:"KH-1",fullName:"An"}],cardProducts:[{id:"p1",cardId:"1",bankId:"b",cardName:"A"},{id:"p2",cardId:"2",bankId:"b",cardName:"B"},{id:"p3",cardId:"3",bankId:"b",cardName:"C"}],customerCards:[{id:"l1",customerId:"c",cardProductId:"p1",sharedLimitCardIds:["p2"]},{id:"l2",customerId:"c",cardProductId:"p2",sharedLimitCardIds:["p3"]},{id:"l3",customerId:"c",cardProductId:"p3"}]});
 assert.deepEqual(shared.customerCards.map(x=>x.sharedLimitCardIds.sort()),[["p2","p3"],["p1","p3"],["p1","p2"]]);
+const legacySharedLabels=canonicalize({banks:[{id:"b",code:"B",name:"Bank"}],customers:[{id:"c",customerCode:"KH-1",fullName:"An"}],cardProducts:[{id:"p1",cardId:"TCB-EVERYDAY",bankId:"b",cardName:"A"},{id:"p2",cardId:"SACOM-AMEX",bankId:"b",cardName:"B"}],customerCards:[{id:"l1",customerId:"c",cardProductId:"p1",sharedLimitCardId:"SACOM-AMEX"},{id:"l2",customerId:"c",cardProductId:"p2",sharedLimitCardId:"Không"}]});
+assert.deepEqual(legacySharedLabels.customerCards.map(x=>x.sharedLimitCardIds),[["p2"],["p1"]]);
 assert.equal(formatVndInput("10000000"),"10.000.000 đ");
 assert.equal(parseMoney("10.000.000 đ"),10_000_000);
 assert.deepEqual(["Visa","JCB","American Express"].sort(compareText),["American Express","JCB","Visa"]);

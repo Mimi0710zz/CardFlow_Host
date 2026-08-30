@@ -1,4 +1,4 @@
-import {canonicalize} from "./local-repository.js?v=20260830-autosync-cardsv4";
+import {canonicalize} from "./local-repository.js?v=20260830-customer-tagsv5";
 
 const isDrive404 = error => error?.status === 404 || error?.code === "drive-404" || error?.message === "drive-404";
 
