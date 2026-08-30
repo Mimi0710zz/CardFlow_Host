@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import {canonicalize} from "../services/local-repository.js";
 import {formatVndInput, parseMoney} from "../services/money.js";
-import {compareCards,compareCardId,compareCustomerCardLinks,compareCustomers,compareText} from "../services/sorting.js";
+import {compareCards,compareCardId,compareCustomerCardLinks,buildSortedCustomerCardRows,compareCustomers,compareText} from "../services/sorting.js";
 import {SyncService} from "../services/sync-service.js";
 import {CARD_BRANDS,normalizeCardBrand} from "../services/card-types.js";
 
@@ -32,6 +32,9 @@ const randomCards=[{id:"6",cardId:"TCB-EVERYDAY"},{id:"2",cardId:"MB-SIGNATURE"}
 assert.deepEqual(randomCards.sort(compareCardId).map(x=>x.cardId),["MB-MASTER-PLATINUM","MB-SIGNATURE","MB-ULTIMATE","SACOM-AMEX","SACOM-CASHBACK","TCB-EVERYDAY"]);
 const linkProducts=new Map([{id:"p2",cardId:"B",bankId:"b2",cardName:"Z"},{id:"p1",cardId:"A",bankId:"b1",cardName:"A"}].map(x=>[x.id,x]));
 assert.deepEqual([{cardProductId:"p2"},{cardProductId:"p1"}].sort((a,b)=>compareCustomerCardLinks(a,b,id=>linkProducts.get(id),card=>card.bankId)).map(x=>x.cardProductId),["p1","p2"]);
+const exactCardIds=["TCB-Everyday","MB - Ultimate","MB - Signature","MB - Master Platinum","SACOM Amex","SACOM Cashback"],exactProducts=exactCardIds.map((cardId,index)=>({id:`exact-${index}`,cardId,bankId:"bank",cardName:`Card ${index}`})),exactLinks=exactProducts.map((card,index)=>({id:`link-${index}`,customerId:"customer",cardProductId:card.id,creditLimit:1}));
+const exactDisplayRows=buildSortedCustomerCardRows(exactLinks,exactProducts,[{id:"bank",name:"Bank"}]);
+assert.deepEqual(exactDisplayRows.map(row=>row.cardId),["MB - Master Platinum","MB - Signature","MB - Ultimate","SACOM Amex","SACOM Cashback","TCB-Everyday"]);
 
 class FakeLocalRepository extends EventTarget{
   constructor(){super();this.meta={fileId:"f",baseRevision:1,dirty:true,status:"dirty"};}
