@@ -74,16 +74,19 @@ button{border:1px solid var(--line);border-radius:9px;padding:9px 13px;backgroun
 @media(max-width:479px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.drive-actions{grid-template-columns:1fr}.topbar h1{font-size:20px}}
 
 /* Customer editor: manage owned cards directly in Add/Edit Customer */
-.customer-editor-modal .modal-card{width:min(1080px,100%)}
+.customer-editor-modal .modal-card{width:min(1380px,100%);display:flex;flex-direction:column;overflow:hidden}
+.customer-editor-modal .modal-body{overflow-y:auto;min-height:0;padding-right:3px}
+.customer-editor-modal .form-actions{flex:0 0 auto;background:var(--panel);padding-top:10px}
 .customer-card-editor{grid-column:1/-1;border-top:1px solid var(--line);padding-top:14px;margin-top:2px}
 .customer-card-title{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:10px}
 .customer-card-title h3{margin:0;color:var(--ink);font-size:16px}
 .customer-card-title p{margin:3px 0 0;color:var(--muted);font-size:12px}
 .customer-card-rows{display:grid;gap:9px}
-.customer-card-row{display:grid;grid-template-columns:minmax(260px,2.1fr) minmax(150px,1fr) minmax(120px,.8fr) minmax(140px,.9fr) 38px;gap:9px;align-items:end;padding:10px;border:1px solid var(--line);border-radius:11px;background:#f8fafc}
+.customer-card-row{display:grid;grid-template-columns:minmax(190px,1.8fr) minmax(115px,.9fr) minmax(105px,.8fr) minmax(125px,1fr) 82px 82px minmax(145px,1.15fr) 38px;gap:7px;align-items:end;padding:9px;border:1px solid var(--line);border-radius:11px;background:#f8fafc}
 .customer-card-cell{display:grid;gap:5px;min-width:0}
 .customer-card-cell label{font-size:12px;font-weight:700;color:#536273}
 .customer-card-cell input,.customer-card-cell select{width:100%;min-width:0;border:1px solid var(--line);border-radius:9px;padding:10px 11px;background:#fff;color:var(--ink)}
+.shared-limit{position:relative;min-width:0}.shared-limit summary{height:40px;display:flex;align-items:center;padding:0 9px;border:1px solid var(--line);border-radius:9px;background:#fff;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.shared-limit-menu{position:absolute;z-index:5;right:0;top:calc(100% + 4px);width:min(330px,80vw);max-height:240px;overflow:auto;padding:7px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 30px rgba(20,35,55,.18)}.shared-limit-menu label{display:flex;align-items:flex-start;gap:7px;padding:7px;border-radius:7px;font-weight:500}.shared-limit-menu label:hover{background:#f2f7fb}.shared-limit-menu input{width:auto;min-width:16px;margin-top:2px;padding:0}.shared-limit-menu label[hidden]{display:none}
 .customer-card-remove{width:38px;height:40px;border-radius:9px;border:1px solid #f1c6c6;background:#fff5f5;color:#c23c3c;font-size:22px;line-height:1;padding:0}
 .customer-card-remove:hover{background:#ffe8e8}
 .customer-card-add-line{display:flex;justify-content:flex-start;padding-top:8px}
@@ -91,14 +94,14 @@ button{border:1px solid var(--line);border-radius:9px;padding:9px 13px;backgroun
 .customer-card-add:hover{background:#dcefff}
 
 @media(max-width:900px){
-  .customer-card-row{grid-template-columns:1fr 1fr 1fr 1fr 38px}
-  .customer-card-row .card-choice{grid-column:1/-2}
+  .customer-card-row{grid-template-columns:repeat(4,minmax(0,1fr)) 38px}
+  .customer-card-row .card-choice{grid-column:1/3;grid-row:1}.customer-card-row>.customer-card-cell:nth-child(2){grid-column:3;grid-row:1}.customer-card-row>.customer-card-cell:nth-child(3){grid-column:4;grid-row:1}.customer-card-row .money-cell{grid-column:1;grid-row:2}.customer-card-row>.customer-card-cell:nth-child(5){grid-column:2;grid-row:2}.customer-card-row>.customer-card-cell:nth-child(6){grid-column:3;grid-row:2}.customer-card-row .shared-cell{grid-column:4/6;grid-row:2}.customer-card-remove{grid-column:5;grid-row:1}
 }
 @media(max-width:700px){
   .customer-editor-modal .modal-card{width:calc(100vw - 16px)}
   .customer-card-row{grid-template-columns:1fr 1fr;align-items:end}
-  .customer-card-row .card-choice{grid-column:1/-1}
-  .customer-card-remove{grid-column:2;justify-self:end}
+  .customer-card-row .customer-card-cell,.customer-card-row .card-choice,.customer-card-row .money-cell,.customer-card-row .shared-cell{grid-column:auto;grid-row:auto}.customer-card-row .card-choice,.customer-card-row .shared-cell{grid-column:1/-1}
+  .customer-card-remove{grid-column:2;grid-row:auto;justify-self:end}
 }
 @media(max-width:480px){
   .customer-card-row{grid-template-columns:1fr}

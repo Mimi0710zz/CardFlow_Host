@@ -1,4 +1,4 @@
-import {canonicalize} from "./local-repository.js?v=20260830-drivefixv2";
+import {canonicalize} from "./local-repository.js?v=20260830-autosync-cardsv4";
 
 const isDrive404 = error => error?.status === 404 || error?.code === "drive-404" || error?.message === "drive-404";
 
@@ -6,6 +6,23 @@ export class SyncService extends EventTarget {
   constructor({localRepository, driveRepository, auth, getState, setState}){
     super();
     Object.assign(this, {localRepository, driveRepository, auth, getState, setState});
+    this.autoSyncDelay=650;
+    this.autoSyncTimer=null;
+    this.syncPromise=null;
+    this.pendingSync=false;
+    this.pendingOptions={};
+    this.mutationVersion=0;
+    this.localRepository.addEventListener("mutation",()=>{
+      this.mutationVersion+=1;
+      if(this.syncPromise)this.pendingSync=true;
+      else this.scheduleAutoSync();
+    });
+  }
+
+  scheduleAutoSync(){
+    if(!this.auth.hasToken())return;
+    clearTimeout(this.autoSyncTimer);
+    this.autoSyncTimer=setTimeout(()=>this.syncNow().catch(()=>{}),this.autoSyncDelay);
   }
 
   emit(status, detail = {}){
@@ -85,7 +102,30 @@ export class SyncService extends EventTarget {
     return this.createDriveFileFromLocal(local);
   }
 
-  async syncNow({forceLocal=false} = {}){
+  syncNow(options = {}){
+    clearTimeout(this.autoSyncTimer);
+    this.autoSyncTimer=null;
+    if(this.syncPromise){
+      this.pendingSync=true;
+      this.pendingOptions={...this.pendingOptions,...options};
+      return this.syncPromise;
+    }
+    this.syncPromise=this.runSyncQueue(options).finally(()=>{this.syncPromise=null;});
+    return this.syncPromise;
+  }
+
+  async runSyncQueue(options){
+    let nextOptions=options;
+    do{
+      this.pendingSync=false;
+      this.pendingOptions={};
+      await this.performSync(nextOptions);
+      nextOptions=this.pendingOptions;
+    }while(this.pendingSync);
+  }
+
+  async performSync({forceLocal=false} = {}){
+    const startMutationVersion=this.mutationVersion;
     try{
       this.emit("syncing");
       let local = canonicalize(this.getState());
@@ -96,11 +136,19 @@ export class SyncService extends EventTarget {
       // immediately GET/PATCH the file again. This also avoids a needless
       // second request during the first connection.
       if(created){
-        this.setState(remote);
-        this.localRepository.save(remote, {dirty:false});
-        this.localRepository.markClean(remote.revision);
+        if(this.mutationVersion===startMutationVersion){
+          this.setState(remote);
+          this.localRepository.save(remote, {dirty:false});
+          this.localRepository.markClean(remote.revision);
+        }else{
+          const latest=canonicalize({...this.getState(),revision:remote.revision});
+          this.setState(latest);
+          this.localRepository.save(latest,{dirty:true,notify:false});
+          this.localRepository.saveMeta({...this.localRepository.loadMeta(),baseRevision:remote.revision,status:"dirty"});
+          this.pendingSync=true;
+        }
         this.localRepository.saveMeta({...this.localRepository.loadMeta(), fileId});
-        this.emit("synced");
+        this.emit(this.pendingSync?"dirty":"synced");
         return;
       }
 
@@ -113,9 +161,17 @@ export class SyncService extends EventTarget {
         if(remote.revision > 0) await this.driveRepository.createBackup(remote);
         const upload = canonicalize({...local, revision:remote.revision + 1, updatedAt:new Date().toISOString()});
         await this.driveRepository.updateFile(fileId, upload);
-        this.setState(upload);
-        this.localRepository.save(upload, {dirty:false});
-        this.localRepository.markClean(upload.revision);
+        if(this.mutationVersion===startMutationVersion){
+          this.setState(upload);
+          this.localRepository.save(upload, {dirty:false});
+          this.localRepository.markClean(upload.revision);
+        }else{
+          const latest=canonicalize({...this.getState(),revision:upload.revision});
+          this.setState(latest);
+          this.localRepository.save(latest,{dirty:true,notify:false});
+          this.localRepository.saveMeta({...this.localRepository.loadMeta(),baseRevision:upload.revision,status:"dirty"});
+          this.pendingSync=true;
+        }
       }else if(remote.revision > local.revision){
         this.setState(remote);
         this.localRepository.save(remote, {dirty:false});
@@ -125,7 +181,7 @@ export class SyncService extends EventTarget {
       }
 
       this.localRepository.saveMeta({...this.localRepository.loadMeta(), fileId});
-      this.emit("synced");
+      this.emit(this.pendingSync?"dirty":"synced");
     }catch(error){
       console.error("[Host Google Drive Sync]", {
         operation:error?.operation,
@@ -136,7 +192,7 @@ export class SyncService extends EventTarget {
         requestUrl:error?.requestUrl,
         body:error?.body
       });
-      this.emit("dirty", {error});
+      this.emit("error", {error});
       throw error;
     }
   }
