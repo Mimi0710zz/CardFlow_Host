@@ -1,4 +1,4 @@
-import {canonicalize} from "./local-repository.js?v=20260901-priority-root-fix-v3";
+import {canonicalize} from "./local-repository.js?v=20260901-cashback-mcc-selector-v5";
 
 const isDrive404 = error => error?.status === 404 || error?.code === "drive-404" || error?.message === "drive-404";
 

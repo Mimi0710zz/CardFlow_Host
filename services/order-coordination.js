@@ -1,5 +1,5 @@
-import {calculateProgress,isProgramEligible} from "./cashback-progress.js";
-import {getProgramPriority} from "./cashback-program.js?v=20260901-priority-root-fix-v3";
+import {calculateProgress,isProgramEligible} from "./cashback-progress.js?v=20260901-cashback-mcc-selector-v5";
+import {getProgramPriority} from "./cashback-program.js?v=20260901-cashback-mcc-selector-v5";
 function coordinationRow(state,customerCard,product,program,referenceDate){
  const customer=state.customers.find(x=>x.id===customerCard.customerId);if(!customer)return null;
  return {customer,customerCard,product,program,progress:calculateProgress({customerCard,product,program,transactions:state.transactions,programs:state.cashbackPrograms,referenceDate})};

@@ -1,7 +1,7 @@
 import {formatMoney,parseMoney,bindVndInput} from "./money.js";
 import {formatDate} from "./date.js";
-import {buildCoordinationRows,buildCoordinationRowsForSelection,recommendOrders} from "./order-coordination.js?v=20260901-priority-root-fix-v3";
-import {getProgramPriority} from "./cashback-program.js?v=20260901-priority-root-fix-v3";
+import {buildCoordinationRows,buildCoordinationRowsForSelection,recommendOrders} from "./order-coordination.js?v=20260901-cashback-mcc-selector-v5";
+import {getProgramPriority,getMccSelectionMode} from "./cashback-program.js?v=20260901-cashback-mcc-selector-v5";
 
 const esc=value=>String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
 const normalize=value=>String(value??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").toLowerCase();
@@ -42,7 +42,7 @@ function summary(program,state){
  if(!program)return "";const pieces=[program.name,`${Number(program.rate)||0}%`,program.maxCashbackUnlimited?"Không giới hạn":`Max ${money(program.maxCashback)}`];
  if(!program.maxCashbackUnlimited)pieces.push(`Chi để max ${money(program.eligibleTarget)}`);
  if(program.transactionMethod)pieces.push(program.transactionMethod);
- const mcc=program.allMcc?"Tất cả MCC":program.mccCategoryIds?.map(id=>state.mccCategories.find(item=>item.id===id)?.name).filter(Boolean).join(", ");if(mcc)pieces.push(mcc);
+ const mode=getMccSelectionMode(program),excluded=(program.excludedMccCategoryIds||[]).filter(id=>state.mccCategories.some(item=>item.id===id));const mcc=mode==="all"?(excluded.length?`Tất cả MCC, trừ ${excluded.length} nhóm`:"Tất cả MCC"):program.mccCategoryIds?.map(id=>state.mccCategories.find(item=>item.id===id)?.name).filter(Boolean).join(", ");if(mcc)pieces.push(mcc);
  return pieces.join(" · ");
 }
 function reminderRows(state){

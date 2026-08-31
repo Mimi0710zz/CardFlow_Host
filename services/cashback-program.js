@@ -4,13 +4,23 @@ export function getProgramPriority(program){
   const value=Number(program.priority);
   return Number.isFinite(value)?value:DEFAULT_PROGRAM_PRIORITY;
 }
-const ids=value=>[...new Set((Array.isArray(value)?value:[]).map(item=>String(item||"").trim()).filter(Boolean))];
-export function normalizeProgramMccSelection(program={}){
-  const mode=program?.mccSelectionMode==="all"||program?.allMcc===true?"all":"selected";
-  return {mccSelectionMode:mode,eligibleMccCategoryIds:mode==="selected"?ids(program.eligibleMccCategoryIds??program.mccCategoryIds):[],excludedMccCategoryIds:mode==="all"?ids(program.excludedMccCategoryIds):[]};
+
+const ids=value=>Array.isArray(value)?value.filter(Boolean):[];
+export function getMccSelectionMode(program){
+  if(program?.mccSelectionMode==="all"||program?.allMcc===true)return "all";
+  if(program?.mccSelectionMode==="selected")return "selected";
+  return ids(program?.mccCategoryIds).length?"selected":"all";
 }
-export function isProgramMccEligible(program,mccCategoryId){
-  const selection=normalizeProgramMccSelection(program);
-  if(!mccCategoryId)return selection.mccSelectionMode==="all";
-  return selection.mccSelectionMode==="all"?!selection.excludedMccCategoryIds.includes(mccCategoryId):selection.eligibleMccCategoryIds.includes(mccCategoryId);
+export function getExcludedMccCategoryIds(program){return [...new Set(ids(program?.excludedMccCategoryIds))];}
+export function getSelectedMccCategoryIds(program){return [...new Set(ids(program?.mccCategoryIds))];}
+export function isMccCategoryEligible(program,mccCategoryId){
+  const id=String(mccCategoryId||"");
+  if(getMccSelectionMode(program)==="all")return !getExcludedMccCategoryIds(program).includes(id);
+  return !!id&&getSelectedMccCategoryIds(program).includes(id);
+}
+export function programReferencesMcc(program,mccCategoryId){
+  const id=String(mccCategoryId||"");
+  if(!id)return false;
+  if(getMccSelectionMode(program)==="all")return !getExcludedMccCategoryIds(program).includes(id);
+  return getSelectedMccCategoryIds(program).includes(id);
 }
