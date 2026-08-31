@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="vi">
+<head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css"></head>
+<body>
+<main>
+  <section id="view-mcc"></section>
+  <section id="view-programs"></section>
+  <section id="view-transactions"></section>
+  <section id="view-coordination"></section>
+</main>
+<div id="toast"></div>
+<pre id="result">RUNNING</pre>
+<script type="module">
+import {renderCashbackFeatures} from "../../services/cashback-feature-ui.js?v=20260901-mcc-definitive-fix-v4";
+import {canonicalize,uuid} from "../../services/local-repository.js?v=20260901-mcc-crud-fix-v1";
+
+let state=canonicalize({
+  schemaVersion:3,revision:0,deviceId:"repeat-browser",
+  banks:[],customers:[],cardProducts:[],customerCards:[],
+  cashbackPrograms:[],transactions:[],settings:{},
+  mccCategories:[{id:"mcc-education",name:"Giáo dục",codes:["8211"],description:"",notes:""}]
+});
+const toast=()=>{};
+const save=(message,nextState=state)=>{
+  state=canonicalize(nextState);
+  // Simulate a background sync replacing the state object.
+  state=canonicalize(JSON.parse(JSON.stringify(state)));
+  renderCashbackFeatures({state,getState:()=>state,save,uuid,toast});
+  return state;
+};
+const render=()=>renderCashbackFeatures({state,getState:()=>state,save,uuid,toast});
+const add=async(name,code)=>{
+  document.querySelector('[data-feature-add="mcc"]').click();
+  const modal=document.querySelector('.feature-modal');
+  modal.querySelector('[name="name"]').value=name;
+  modal.querySelector('[name="codes"]').value=code;
+  modal.querySelector('form').requestSubmit();
+  await new Promise(r=>setTimeout(r,0));
+};
+render();
+await add("Ăn uống","5812");
+await add("Siêu thị","5411");
+const rows=[...document.querySelectorAll('[data-feature-table="mcc"] tbody tr')];
+const names=rows.map(r=>r.children[0].textContent.trim());
+document.querySelector("#result").textContent=JSON.stringify({count:rows.length,names,stateCount:state.mccCategories.length});
+document.body.dataset.testResult=rows.length===3&&state.mccCategories.length===3?"PASS":"FAIL";
+</script>
+</body></html>

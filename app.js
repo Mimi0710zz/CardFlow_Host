@@ -7,7 +7,7 @@ import {formatDate,formatDay,toStorageDate} from "./services/date.js?v=20260830-
 import {compareText,sortByLabel,compareCards,compareCardId,compareCustomerCardLinks,buildSortedCustomerCardRows,compareCustomers} from "./services/sorting.js?v=20260830-customer-detail-sortv9";
 import {CARD_BRANDS,CARD_RANKS,OWNERSHIP_TYPES,normalizeCardBrand,normalizeCardRank,normalizeOwnershipType} from "./services/card-types.js?v=20260831-cardranksv8";
 import {calculateEffectiveCreditLimit} from "./services/credit-limit.js?v=20260830-effective-limitv7";
-import {renderCashbackFeatures,renderCashbackDashboard} from "./services/cashback-feature-ui.js?v=20260901-mcc-save-fix-v3";
+import {renderCashbackFeatures,renderCashbackDashboard} from "./services/cashback-feature-ui.js?v=20260901-mcc-definitive-fix-v4";
 import {applyHostBootstrapData} from "./services/host-bootstrap.js?v=20260901-priority-root-fix-v3";
 
 const $=(selector,root=document)=>root.querySelector(selector), $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
@@ -200,7 +200,7 @@ function bindCustomerCardEditor(root){
 function entityTable(headers,rows,entity,emptyMessage="Không có dữ liệu phù hợp.",hasFilters=false){return rows.length?`<div class="table-wrap"><table class="mobile" data-entity="${entity}"><thead><tr>${headers.map((h,i)=>`<th data-sort="${i}">${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`:`<div class="empty">${esc(emptyMessage)}${hasFilters?'<br><button data-clear-filter>Xóa tìm kiếm và bộ lọc</button>':""}</div>`;}
 function cell(label,value){return `<td data-label="${label}">${value}</td>`;}
 
-function render(){renderDashboard();renderCustomers();renderCards();renderCatalog();renderSystem();renderAbout();renderCashbackFeatures({state,save,uuid,toast});bindTables();bindHelpTabs();}
+function render(){renderDashboard();renderCustomers();renderCards();renderCatalog();renderSystem();renderAbout();renderCashbackFeatures({state,getState:()=>state,save,uuid,toast});bindTables();bindHelpTabs();}
 function applyLoadedState(data){return applyHostBootstrapData(data,{applyState:value=>{state=value;},renderApp:()=>{render();renderSyncStatus();}});}
 function renderDashboard(){
   const active=state.customerCards.filter(x=>x.status==="active"),limitAnalysis=effectiveLimit(active),validCustomerIds=new Set(state.customers.map(item=>item.id));

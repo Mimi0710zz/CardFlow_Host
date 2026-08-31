@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {canonicalize} from "../services/local-repository.js";
-import {filterMccCategories,sortMccCategories,upsertMccCategory} from "../services/cashback-feature-ui.js";
+import {buildNextMccState,filterMccCategories,sortMccCategories,upsertMccCategory} from "../services/cashback-feature-ui.js";
 
 const fixture=[
   {id:"mcc-education",name:"Giáo dục (Alepay)",codes:["8211"],description:"Học phí",notes:"Online"},
@@ -53,4 +53,24 @@ test("MCC canonicalization preserves valid IDs and repairs only missing/duplicat
   assert.equal(result.mccCategories[0].id,"mcc-education");
   assert.equal(new Set(result.mccCategories.map(item=>item.id)).size,3);
   assert.ok(result.mccCategories.every(item=>item.id));
+});
+
+test("MCC repeated Add uses the latest replaced app state instead of a stale render snapshot",()=>{
+  let sequence=0;
+  const makeId=()=>`live-${++sequence}`;
+  let appState=canonicalize({mccCategories:[fixture[0]]});
+
+  // First Add.
+  appState=canonicalize(buildNextMccState(appState,{name:"Ăn uống",codes:["5812"]},makeId));
+  assert.equal(appState.mccCategories.length,2);
+
+  // Simulate background sync replacing the global app state object after render.
+  const staleRenderedSnapshot=appState;
+  appState=canonicalize(JSON.parse(JSON.stringify(appState)));
+  assert.notEqual(appState,staleRenderedSnapshot);
+
+  // Second Add must base itself on the latest app state and produce a third row.
+  appState=canonicalize(buildNextMccState(appState,{name:"Siêu thị",codes:["5411"]},makeId));
+  assert.equal(appState.mccCategories.length,3);
+  assert.deepEqual(appState.mccCategories.map(x=>x.name).sort(),["Giáo dục (Alepay)","Siêu thị","Ăn uống"].sort());
 });
