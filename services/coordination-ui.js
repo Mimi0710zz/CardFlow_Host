@@ -1,7 +1,7 @@
 import {formatMoney,parseMoney,bindVndInput} from "./money.js";
 import {formatDate} from "./date.js";
-import {buildCoordinationRows,buildCoordinationRowsForSelection,recommendOrders} from "./order-coordination.js?v=20260901-cashback-program-crud-v6";
-import {getProgramPriority,getMccSelectionMode} from "./cashback-program.js?v=20260901-cashback-program-crud-v6";
+import {buildCoordinationRows,buildCoordinationRowsForSelection,recommendOrders} from "./order-coordination.js?v=20260901-cashback-rate-decimal-v7";
+import {getProgramPriority,getMccSelectionMode} from "./cashback-program.js?v=20260901-cashback-rate-decimal-v7";
 
 const esc=value=>String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
 const normalize=value=>String(value??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").toLowerCase();
