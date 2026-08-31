@@ -1,5 +1,5 @@
 import {LocalRepository,uuid} from "./services/local-repository.js?v=20260831-cardranksv8";
-import {DriveAuth} from "./services/drive-auth.js?v=20260830-customercardsv3";
+import {DriveAuth} from "./services/drive-auth.js?v=20260901-gis-auth-fix";
 import {DriveRepository} from "./services/drive-repository.js?v=20260830-customercardsv3";
 import {SyncService} from "./services/sync-service.js?v=20260830-cardtypesv6";
 import {formatMoney,parseMoney,formatVndInput,bindVndInput} from "./services/money.js?v=20260830-customer-tagsv5";
