@@ -7,7 +7,7 @@ import {formatDate,formatDay,toStorageDate} from "./services/date.js?v=20260830-
 import {compareText,sortByLabel,compareCards,compareCardId,compareCustomerCardLinks,buildSortedCustomerCardRows,compareCustomers} from "./services/sorting.js?v=20260830-customer-detail-sortv9";
 import {CARD_BRANDS,CARD_RANKS,OWNERSHIP_TYPES,normalizeCardBrand,normalizeCardRank,normalizeOwnershipType} from "./services/card-types.js?v=20260831-cardranksv8";
 import {calculateEffectiveCreditLimit} from "./services/credit-limit.js?v=20260830-effective-limitv7";
-import {renderCashbackFeatures,renderCashbackDashboard} from "./services/cashback-feature-ui.js?v=20260831-host-cashback-v4";
+import {renderCashbackFeatures,renderCashbackDashboard} from "./services/cashback-feature-ui.js?v=20260831-host-orders-v6";
 
 const $=(selector,root=document)=>root.querySelector(selector), $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
 const repo=new LocalRepository(); let state=repo.load(), currentView="dashboard", filters={}, sorts={}, pendingRemote=null;
@@ -19,7 +19,7 @@ const VIEW_META={
   dashboard:{title:"Tổng hợp",description:"Tổng quan danh mục khách hàng và thẻ"},
   customers:{title:"Khách hàng",description:"Quản lý khách hàng và thẻ đang sở hữu"},
   cards:{title:"Thẻ ngân hàng",description:"Quản lý sản phẩm thẻ ngân hàng dùng chung"},
-  transactions:{title:"Giao dịch",description:"Ghi nhận đơn đã thực hiện bằng thẻ khách hàng"},
+  transactions:{title:"Đơn đánh",description:"Ghi nhận và tra cứu đơn đã thực hiện bằng thẻ khách hàng"},
   coordination:{title:"Điều phối đơn",description:"Ưu tiên thẻ và chương trình theo tiến độ cashback"},
   programs:{title:"Chương trình hoàn tiền",description:"Cấu hình rule một lần cho từng Thẻ ngân hàng"},
   mcc:{title:"Mã MCC",description:"Danh mục nhóm ngành và mã MCC"},
