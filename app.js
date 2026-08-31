@@ -1,14 +1,14 @@
-import {LocalRepository,uuid} from "./services/local-repository.js?v=20260901-cashback-mcc-selector-v5";
+import {LocalRepository,uuid} from "./services/local-repository.js?v=20260901-cashback-program-crud-v6";
 import {DriveAuth} from "./services/drive-auth.js?v=20260901-gis-auth-fix";
 import {DriveRepository} from "./services/drive-repository.js?v=20260830-customercardsv3";
-import {SyncService} from "./services/sync-service.js?v=20260901-cashback-mcc-selector-v5";
+import {SyncService} from "./services/sync-service.js?v=20260901-cashback-program-crud-v6";
 import {formatMoney,parseMoney,formatVndInput,bindVndInput} from "./services/money.js?v=20260830-customer-tagsv5";
 import {formatDate,formatDay,toStorageDate} from "./services/date.js?v=20260830-customercardsv3";
 import {compareText,sortByLabel,compareCards,compareCardId,compareCustomerCardLinks,buildSortedCustomerCardRows,compareCustomers} from "./services/sorting.js?v=20260830-customer-detail-sortv9";
 import {CARD_BRANDS,CARD_RANKS,OWNERSHIP_TYPES,normalizeCardBrand,normalizeCardRank,normalizeOwnershipType} from "./services/card-types.js?v=20260831-cardranksv8";
 import {calculateEffectiveCreditLimit} from "./services/credit-limit.js?v=20260830-effective-limitv7";
-import {renderCashbackFeatures,renderCashbackDashboard} from "./services/cashback-feature-ui.js?v=20260901-cashback-mcc-selector-v5";
-import {applyHostBootstrapData} from "./services/host-bootstrap.js?v=20260901-cashback-mcc-selector-v5";
+import {renderCashbackFeatures,renderCashbackDashboard} from "./services/cashback-feature-ui.js?v=20260901-cashback-program-crud-v6";
+import {applyHostBootstrapData} from "./services/host-bootstrap.js?v=20260901-cashback-program-crud-v6";
 
 const $=(selector,root=document)=>root.querySelector(selector), $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
 const repo=new LocalRepository(); let state=repo.load(), currentView="dashboard", filters={}, sorts={}, pendingRemote=null;
