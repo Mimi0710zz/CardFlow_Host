@@ -8,6 +8,7 @@
 - Sau khi module MCC bind sự kiện, `app.js/bindTables()` lại bind mọi `tr[data-id]` trong toàn tài liệu.
 - Double-click MCC vì thế gọi `openDetail(undefined, mccId)`, rồi rơi vào form CRUD chung `openForm(undefined, mccId)`. Form này không tra được MCC nên phần nhập trống.
 - Sửa bằng cách giới hạn binder chung vào `table[data-entity] tr[data-id]`. Binder riêng của cashback gắn click và double-click, cả nút **Chỉnh sửa** lẫn double-click đều gọi cùng `open(entity, id)` với đúng `row.dataset.id`.
+- Kiểm tra thực tế sau phản hồi người dùng cho thấy cần phòng vệ cả trường hợp bundle/binder khác gắn lại thuộc tính `ondblclick` sau MCC. Handler MCC hiện chạy ở capture phase và gọi `stopImmediatePropagation()`, nên modal CRUD chung không thể mở đè modal MCC. `bindTables()` cũng có guard bỏ qua mọi bảng có `data-feature-table`.
 
 ### Bảng chỉ hiện một dòng và Add không hiện — không tái hiện được trên checkout hiện tại
 
@@ -65,3 +66,4 @@
   - Search `5812` chỉ còn đúng dòng; clear search bỏ `hidden` khỏi cả 4 dòng.
   - Console error: 0.
 - Browser trên app shell với phiên Google Drive đăng nhập thật: **[Chưa xác minh]** vì test không bypass cổng OAuth; fixture chạy trực tiếp đúng module production và repository canonicalization.
+- Regression xung đột handler: cố ý gắn thêm `row.ondblclick` kiểu binder cũ sau khi MCC render; double-click vẫn chỉ mở một modal `Chỉnh sửa Mã MCC`, nạp đúng `Ăn uống / 5812`, handler cũ không chạy.
