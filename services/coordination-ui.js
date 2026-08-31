@@ -1,6 +1,7 @@
 import {formatMoney,parseMoney,bindVndInput} from "./money.js";
 import {formatDate} from "./date.js";
-import {buildCoordinationRows,buildCoordinationRowsForSelection,recommendOrders} from "./order-coordination.js";
+import {buildCoordinationRows,buildCoordinationRowsForSelection,recommendOrders} from "./order-coordination.js?v=20260901-priority-root-fix-v3";
+import {getProgramPriority} from "./cashback-program.js?v=20260901-priority-root-fix-v3";
 
 const esc=value=>String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
 const normalize=value=>String(value??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").toLowerCase();
@@ -24,15 +25,15 @@ export function sortCoordinationRows(rows,mode="priority"){
   if(mode==="remaining-asc")return Number(a.progress.remainingEligibleSpend??Infinity)-Number(b.progress.remainingEligibleSpend??Infinity)||name(a,b);
   if(mode==="days")return Number(a.progress.daysRemaining??Infinity)-Number(b.progress.daysRemaining??Infinity)||name(a,b);
   if(mode==="customer")return name(a,b);
-  return priority(coordinationDisplayStatus(a))-priority(coordinationDisplayStatus(b))||Number(a.progress.daysRemaining??Infinity)-Number(b.progress.daysRemaining??Infinity)||Number(b.program.priority||0)-Number(a.program.priority||0)||name(a,b);
+  return priority(coordinationDisplayStatus(a))-priority(coordinationDisplayStatus(b))||Number(a.progress.daysRemaining??Infinity)-Number(b.progress.daysRemaining??Infinity)||getProgramPriority(b.program)-getProgramPriority(a.program)||name(a,b);
  });
 }
 export function selectDefaultProgram(programs,currentId=""){
- const active=programs.filter(item=>item.status==="active").sort((a,b)=>Number(b.priority||0)-Number(a.priority||0)||String(a.name).localeCompare(String(b.name),"vi"));
+ const active=programs.filter(item=>item?.status==="active").sort((a,b)=>getProgramPriority(b)-getProgramPriority(a)||String(a?.name||"").localeCompare(String(b?.name||""),"vi"));
  return active.some(item=>item.id===currentId)?currentId:(active[0]?.id||"");
 }
 
-function programsFor(state,productId){return state.cashbackPrograms.filter(item=>item.bankCardProductId===productId&&item.status==="active").sort((a,b)=>Number(b.priority||0)-Number(a.priority||0)||String(a.name).localeCompare(String(b.name),"vi"));}
+function programsFor(state,productId){return state.cashbackPrograms.filter(item=>item?.bankCardProductId===productId&&item.status==="active").sort((a,b)=>getProgramPriority(b)-getProgramPriority(a)||String(a?.name||"").localeCompare(String(b?.name||""),"vi"));}
 function cardProducts(state){return state.cardProducts.filter(item=>item.id&&item.status!=="inactive").sort((a,b)=>String(a.cardId||"").localeCompare(String(b.cardId||""),"vi",{numeric:true,sensitivity:"base"}));}
 function productLabel(state,product){const bank=state.banks.find(item=>item.id===product.bankId);return `${product.cardId} — ${bank?.name||"—"} · ${product.cardName||"—"} · ${product.cardBrand||product.network||"—"}`;}
 function cycleLabel(product,customerCard){return (customerCard?.cashbackCycleModeOverride||product?.cashbackCycleMode)==="statement"?"Theo sao kê":"Theo tháng";}

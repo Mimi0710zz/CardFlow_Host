@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<script>
+localStorage.setItem("cardflow-host-data-v1",JSON.stringify({
+  schemaVersion:3,revision:0,deviceId:"empty-priority-repro",
+  banks:[{id:"b",code:"B",name:"Bank"}],
+  customers:[{id:"c",customerCode:"KH-1",fullName:"Test 1"},{id:"c2",customerCode:"KH-2",fullName:"Test 2"}],
+  cardProducts:[{id:"p",cardId:"CARD-1",bankId:"b",cardName:"Card",status:"active"}],
+  customerCards:[{id:"cc",customerId:"c",cardProductId:"p",status:"active"},{id:"cc2",customerId:"c2",cardProductId:"p",status:"active"}],
+  mccCategories:[],cashbackPrograms:[],transactions:[],settings:{}
+}));
+location.replace("/");
+</script>

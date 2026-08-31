@@ -1,10 +1,11 @@
 import {calculateProgress,isProgramEligible} from "./cashback-progress.js";
+import {getProgramPriority} from "./cashback-program.js?v=20260901-priority-root-fix-v3";
 function coordinationRow(state,customerCard,product,program,referenceDate){
  const customer=state.customers.find(x=>x.id===customerCard.customerId);if(!customer)return null;
  return {customer,customerCard,product,program,progress:calculateProgress({customerCard,product,program,transactions:state.transactions,programs:state.cashbackPrograms,referenceDate})};
 }
 export function buildCoordinationRows(state,referenceDate=new Date()){
- const rows=[];for(const card of state.customerCards.filter(x=>x.status==="active")){const product=state.cardProducts.find(x=>x.id===card.cardProductId);if(!product)continue;for(const program of state.cashbackPrograms.filter(x=>x.bankCardProductId===product.id&&x.status==="active")){const row=coordinationRow(state,card,product,program,referenceDate);if(row)rows.push(row);}}return rows.sort((a,b)=>(a.progress.status==="completed")-(b.progress.status==="completed")||String(a.progress.cycleEnd||"9999").localeCompare(String(b.progress.cycleEnd||"9999"))||Number(b.program.priority||0)-Number(a.program.priority||0));
+ const rows=[];for(const card of state.customerCards.filter(x=>x?.status==="active")){const product=state.cardProducts.find(x=>x?.id===card.cardProductId);if(!product)continue;for(const program of state.cashbackPrograms.filter(x=>x?.bankCardProductId===product.id&&x.status==="active")){const row=coordinationRow(state,card,product,program,referenceDate);if(row)rows.push(row);}}return rows.sort((a,b)=>(a.progress.status==="completed")-(b.progress.status==="completed")||String(a.progress.cycleEnd||"9999").localeCompare(String(b.progress.cycleEnd||"9999"))||getProgramPriority(b.program)-getProgramPriority(a.program));
 }
 export function buildCoordinationRowsForSelection(state,{cardProductId="",programId="",referenceDate=new Date()}={}){
  const product=state.cardProducts.find(x=>x.id===cardProductId);if(!product)return [];

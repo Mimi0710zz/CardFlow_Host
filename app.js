@@ -1,18 +1,19 @@
-import {LocalRepository,uuid} from "./services/local-repository.js?v=20260901-empty-state-v1";
+import {LocalRepository,uuid} from "./services/local-repository.js?v=20260901-priority-root-fix-v3";
 import {DriveAuth} from "./services/drive-auth.js?v=20260901-gis-auth-fix";
 import {DriveRepository} from "./services/drive-repository.js?v=20260830-customercardsv3";
-import {SyncService} from "./services/sync-service.js?v=20260830-cardtypesv6";
+import {SyncService} from "./services/sync-service.js?v=20260901-priority-root-fix-v3";
 import {formatMoney,parseMoney,formatVndInput,bindVndInput} from "./services/money.js?v=20260830-customer-tagsv5";
 import {formatDate,formatDay,toStorageDate} from "./services/date.js?v=20260830-customercardsv3";
 import {compareText,sortByLabel,compareCards,compareCardId,compareCustomerCardLinks,buildSortedCustomerCardRows,compareCustomers} from "./services/sorting.js?v=20260830-customer-detail-sortv9";
 import {CARD_BRANDS,CARD_RANKS,OWNERSHIP_TYPES,normalizeCardBrand,normalizeCardRank,normalizeOwnershipType} from "./services/card-types.js?v=20260831-cardranksv8";
 import {calculateEffectiveCreditLimit} from "./services/credit-limit.js?v=20260830-effective-limitv7";
-import {renderCashbackFeatures,renderCashbackDashboard} from "./services/cashback-feature-ui.js?v=20260901-empty-state-v1";
+import {renderCashbackFeatures,renderCashbackDashboard} from "./services/cashback-feature-ui.js?v=20260901-priority-root-fix-v3";
+import {applyHostBootstrapData} from "./services/host-bootstrap.js?v=20260901-priority-root-fix-v3";
 
 const $=(selector,root=document)=>root.querySelector(selector), $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
 const repo=new LocalRepository(); let state=repo.load(), currentView="dashboard", filters={}, sorts={}, pendingRemote=null;
 const auth=new DriveAuth(window.HostFlowConfig), drive=new DriveRepository(auth);
-const sync=new SyncService({localRepository:repo,driveRepository:drive,auth,getState:()=>state,setState:value=>{state=value;render();renderSyncStatus();}});
+const sync=new SyncService({localRepository:repo,driveRepository:drive,auth,getState:()=>state,setState:value=>{state=value;}});
 const SIDEBAR_STORAGE_KEY="cardflow-host-sidebar-expanded";
 const expandedResponsiveRows=new Set();
 const VIEW_META={
@@ -200,6 +201,7 @@ function entityTable(headers,rows,entity,emptyMessage="Không có dữ liệu ph
 function cell(label,value){return `<td data-label="${label}">${value}</td>`;}
 
 function render(){renderDashboard();renderCustomers();renderCards();renderCatalog();renderSystem();renderAbout();renderCashbackFeatures({state,save,uuid,toast});bindTables();bindHelpTabs();}
+function applyLoadedState(data){return applyHostBootstrapData(data,{applyState:value=>{state=value;},renderApp:()=>{render();renderSyncStatus();}});}
 function renderDashboard(){
   const active=state.customerCards.filter(x=>x.status==="active"),limitAnalysis=effectiveLimit(active),validCustomerIds=new Set(state.customers.map(item=>item.id));
   const topProducts=state.cardProducts.map(card=>{const ownerIds=new Set(state.customerCards.filter(link=>link.cardProductId===card.id&&validCustomerIds.has(link.customerId)).map(link=>link.customerId));return {cardId:card.cardId,bankName:bank(card.bankId)?.name||"",count:ownerIds.size};}).filter(item=>item.count>0).sort((left,right)=>right.count-left.count||compareText(left.cardId,right.cardId)||compareText(left.bankName,right.bankName)).slice(0,10);
@@ -450,18 +452,13 @@ async function connectGoogleDriveFromUi(){
     renderLoginGate();renderSyncStatus("error");return;
   }
   connectingDrive=true;authMessage="Đang kết nối Google Drive...";renderLoginGate();renderSyncStatus("syncing");
-  try{
-    await sync.connect();
-    authMessage="";
-    state=repo.load();
-    render();setView("dashboard");renderSyncStatus();toast("Đã kết nối Google Drive");
-  }catch(error){
-    authMessage=connectionMessage(error);
-    auth.disconnect();
-    renderSyncStatus("error");toast(authMessage);
-  }finally{
-    connectingDrive=false;renderLoginGate();renderSyncStatus();
-  }
+  try{await auth.connect();}
+  catch(error){authMessage=connectionMessage(error);auth.disconnect();renderSyncStatus("error");toast(authMessage);connectingDrive=false;renderLoginGate();renderSyncStatus();return;}
+  try{await sync.syncNow();}
+  catch(error){authMessage=connectionMessage(error);auth.disconnect();renderSyncStatus("error");toast(authMessage);connectingDrive=false;renderLoginGate();renderSyncStatus();return;}
+  try{authMessage="";applyLoadedState(repo.load());setView("dashboard");toast("Đã kết nối Google Drive");}
+  catch(error){console.error("[HOST_BOOT] Lỗi khởi tạo ứng dụng sau khi tải dữ liệu",error);authMessage=`Lỗi khởi tạo ứng dụng: ${error?.message||"Không xác định"}`;toast(authMessage);}
+  finally{connectingDrive=false;renderLoginGate();renderSyncStatus();}
 }
 function watchGoogleSdkReadiness(){
   let attempts=0;
@@ -489,9 +486,9 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')setSidebarOpen(false
 $('#excelFile').onchange=e=>{importExcel(e.target.files[0]).catch(err=>toast(`Không thể đọc Excel: ${err.message}`));e.target.value='';};
 $('#gateConnectDrive').onclick=()=>connectGoogleDriveFromUi();
 $('#connectDrive').onclick=()=>connectGoogleDriveFromUi();
-$('#syncDrive').onclick=()=>sync.syncNow().then(()=>{renderSyncStatus();toast('Đã đồng bộ');}).catch(e=>toast(`Đồng bộ lỗi: ${e.message}`));
+$('#syncDrive').onclick=()=>sync.syncNow().then(()=>{applyLoadedState(repo.load());toast('Đã đồng bộ');}).catch(e=>toast(`Đồng bộ lỗi: ${e.message}`));
 $('#disconnectDrive').onclick=()=>{sync.disconnect();authMessage='';renderSyncStatus();renderLoginGate();toast('Đã ngắt kết nối Google Drive');};
-$('[data-use-remote]').onclick=()=>{if(pendingRemote)sync.useRemote(pendingRemote);$('#conflict').hidden=true;renderSyncStatus();};
+$('[data-use-remote]').onclick=()=>{if(pendingRemote){sync.useRemote(pendingRemote);applyLoadedState(repo.load());}$('#conflict').hidden=true;renderSyncStatus();};
 $('[data-keep-local]').onclick=()=>sync.syncNow({forceLocal:true}).then(()=>renderSyncStatus()).catch(e=>toast(e.message));
 sync.addEventListener('status',e=>{
   renderSyncStatus(e.detail.status);
@@ -500,7 +497,7 @@ sync.addEventListener('status',e=>{
 
 const savedSidebar=localStorage.getItem(SIDEBAR_STORAGE_KEY);
 setSidebarExpanded(savedSidebar===null?true:savedSidebar==='true');
-render();
+applyLoadedState(repo.load());
 setView('dashboard');
 renderSyncStatus();
 renderLoginGate();

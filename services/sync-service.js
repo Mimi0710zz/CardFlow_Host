@@ -1,4 +1,4 @@
-import {canonicalize} from "./local-repository.js?v=20260830-cardtypesv6";
+import {canonicalize} from "./local-repository.js?v=20260901-priority-root-fix-v3";
 
 const isDrive404 = error => error?.status === 404 || error?.code === "drive-404" || error?.message === "drive-404";
 
