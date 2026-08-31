@@ -1,5 +1,6 @@
 import {calculateCashbackCycle,daysRemaining} from "./cashback-cycle.js";
-export const isProgramEligible=(program,tx)=>program.status!=="inactive"&&(!program.startDate||tx.date>=program.startDate)&&(!program.endDate||tx.date<=program.endDate)&&(!program.transactionMethod||program.transactionMethod===tx.transactionMethod)&&(program.allMcc||!program.mccCategoryIds?.length||program.mccCategoryIds.includes(tx.mccCategoryId));
+import {isProgramMccEligible} from "./cashback-program.js?v=20260901-program-mcc-selector-v1";
+export const isProgramEligible=(program,tx)=>program.status!=="inactive"&&(!program.startDate||tx.date>=program.startDate)&&(!program.endDate||tx.date<=program.endDate)&&(!program.transactionMethod||program.transactionMethod===tx.transactionMethod)&&isProgramMccEligible(program,tx.mccCategoryId);
 export function calculateProgress({customerCard,product,program,transactions=[],referenceDate=new Date(),programs=[]}){
  const mode=customerCard.cashbackCycleModeOverride||product.cashbackCycleMode||"monthly",statementDay=customerCard.statementDay||product.defaultStatementDay;
  const cycle=calculateCashbackCycle({mode,statementDay,referenceDate});if(!cycle.valid)return {...cycle,status:"configuration-incomplete"};
