@@ -17,6 +17,13 @@
 - Vì không có bản JSON Drive gây lỗi ban đầu và hai triệu chứng này không tái hiện trên mã hiện tại, chưa đủ bằng chứng để quy cho một nguyên nhân lịch sử cụ thể. **[Chưa xác minh]** nguyên nhân chính xác của hai triệu chứng người dùng đã thấy trước bản sửa.
 - Phần gia cố đã thực hiện: CRUD MCC có helper append/update bất biến, bảo đảm ID mới không trùng; selection MCC được giữ qua render và tự xóa nếu ID không còn; sort theo Nhóm MCC rồi mã đầu tiên; cache runtime được đổi phiên bản.
 
+### Bổ sung sau phản hồi Add từ bảng hai dòng
+
+- Luồng submit cũ mutate trực tiếp object `state` được đóng trong closure của `renderCashbackFeatures()`, sau đó gọi `save()` không truyền snapshot. Trong khi `app.js/save()` canonicalize rồi thay biến state toàn cục bằng object mới. Cách truyền ngầm qua tham chiếu này làm kết quả phụ thuộc closure và khó kiểm chứng tại biên lưu/render.
+- Luồng MCC mới tạo `nextState` bất biến chứa toàn bộ MCC cũ cộng bản ghi mới, truyền trực tiếp snapshot vào `save(message, nextState)` và dùng state canonical đã trả về để xác nhận ID vừa lưu vẫn tồn tại.
+- Modal chỉ đóng sau khi repository đã trả về state chứa bản ghi mới. Nếu xác nhận thất bại, form không bị mất và người dùng nhận cảnh báo.
+- Browser regression bắt đầu đúng 2 dòng → thêm `Du lịch / 4722` → 3 dòng ngay → mở lại từ persisted state vẫn 3 dòng, console error bằng 0.
+
 ## 2. Luồng MCC đã kiểm tra
 
 - A. Render: `renderCashbackFeatures()` → `sortMccCategories()` → `mccRows` → `table("mcc", ...)`.

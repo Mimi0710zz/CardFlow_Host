@@ -1,16 +1,16 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css"></head><body>
 <main><section id="view-mcc"></section><section id="view-programs"></section><section id="view-transactions"></section><section id="view-coordination"></section></main><div id="toast"></div>
 <script type="module">
-import {renderCashbackFeatures} from "../../services/cashback-feature-ui.js?v=20260901-mcc-dblclick-fix-v2";
+import {renderCashbackFeatures} from "../../services/cashback-feature-ui.js?v=20260901-mcc-save-fix-v3";
 import {canonicalize,uuid} from "../../services/local-repository.js?v=20260901-mcc-crud-fix-v1";
 const initial={schemaVersion:3,revision:0,deviceId:"mcc-browser-fixture",banks:[],customers:[],cardProducts:[],customerCards:[],cashbackPrograms:[],transactions:[],settings:{},mccCategories:[
  {id:"mcc-education",name:"Giáo dục (Alepay)",codes:["8211"],description:"Học phí",notes:"Online"},
- {id:"mcc-food",name:"Ăn uống",codes:["5812"],description:"Nhà hàng",notes:"POS"},
- {id:"mcc-market",name:"Siêu thị",codes:["5411"],description:"Bán lẻ",notes:""}
+ {id:"mcc-food",name:"Ăn uống",codes:["5812"],description:"Nhà hàng",notes:"POS"}
 ]};
-let state=canonicalize(JSON.parse(localStorage.getItem("mcc-browser-result")||"null")||initial);
+const stored=new URLSearchParams(location.search).has("reset")?null:JSON.parse(localStorage.getItem("mcc-browser-result")||"null");
+let state=canonicalize(stored||initial);
 const toast=message=>document.querySelector("#toast").textContent=message;
-const save=()=>{state=canonicalize(state);localStorage.setItem("mcc-browser-result",JSON.stringify(state));renderCashbackFeatures({state,save,uuid,toast});};
+const save=(message,nextState=state)=>{state=canonicalize(nextState);localStorage.setItem("mcc-browser-result",JSON.stringify(state));renderCashbackFeatures({state,save,uuid,toast});return state;};
 renderCashbackFeatures({state,save,uuid,toast});
 document.querySelectorAll('[data-feature-table="mcc"] tbody tr').forEach(row=>row.ondblclick=()=>document.body.dataset.legacyDblclick="called");
 </script></body></html>

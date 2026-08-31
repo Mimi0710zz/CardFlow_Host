@@ -7,7 +7,7 @@ import {formatDate,formatDay,toStorageDate} from "./services/date.js?v=20260830-
 import {compareText,sortByLabel,compareCards,compareCardId,compareCustomerCardLinks,buildSortedCustomerCardRows,compareCustomers} from "./services/sorting.js?v=20260830-customer-detail-sortv9";
 import {CARD_BRANDS,CARD_RANKS,OWNERSHIP_TYPES,normalizeCardBrand,normalizeCardRank,normalizeOwnershipType} from "./services/card-types.js?v=20260831-cardranksv8";
 import {calculateEffectiveCreditLimit} from "./services/credit-limit.js?v=20260830-effective-limitv7";
-import {renderCashbackFeatures,renderCashbackDashboard} from "./services/cashback-feature-ui.js?v=20260901-mcc-dblclick-fix-v2";
+import {renderCashbackFeatures,renderCashbackDashboard} from "./services/cashback-feature-ui.js?v=20260901-mcc-save-fix-v3";
 import {applyHostBootstrapData} from "./services/host-bootstrap.js?v=20260901-priority-root-fix-v3";
 
 const $=(selector,root=document)=>root.querySelector(selector), $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
@@ -67,7 +67,7 @@ function attributedEffectiveLimits(analysis){
   analysis.groups.forEach(group=>{const owner=group.members[0]?.cardProductId;if(!owner)return;const current=result.get(owner)||{total:0,inconsistencies:[]};current.total+=group.contribution;if(!group.consistent)current.inconsistencies.push(group);result.set(owner,current);});
   return result;
 }
-function save(message="Đã lưu thay đổi"){state=repo.save(state);repo.saveMeta({...repo.loadMeta(),status:auth.hasToken()?"dirty":"disconnected"});render();renderSyncStatus();toast(message);}
+function save(message="Đã lưu thay đổi",nextState=state){state=repo.save(nextState);repo.saveMeta({...repo.loadMeta(),status:auth.hasToken()?"dirty":"disconnected"});render();renderSyncStatus();toast(message);return state;}
 function toast(message){const el=$("#toast");el.textContent=message;el.classList.add("show");clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove("show"),2400);}
 function statusLabel(value){return value==="active"?"Đang hoạt động":value==="inactive"?"Ngừng hoạt động":value==="closed"?"Đã đóng":value==="expiring"?"Sắp hết hạn":value||"—";}
 function badge(value){return `<span class="badge ${value==="active"?"":"off"}">${esc(statusLabel(value))}</span>`;}
