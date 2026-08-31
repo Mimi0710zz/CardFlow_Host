@@ -8,7 +8,7 @@ import {CARD_BRANDS,normalizeCardBrand} from "../services/card-types.js";
 globalThis.CustomEvent ??= class CustomEvent extends Event { constructor(type, options={}){super(type);this.detail=options.detail;} };
 
 const legacy=canonicalize({schemaVersion:1,banks:[{id:"b",code:"B",name:"Bank"}],customers:[{id:"c",customerCode:"KH-0001",fullName:"An"}],cardProducts:[{id:"p",cardId:"V1",bankId:"b",cardName:"Gold",network:"Visa"}],customerCards:[{id:"l",customerId:"c",cardProductId:"p",creditLimit:"1.000.000 đ",sharedLimitCardId:"p"}]});
-assert.equal(legacy.schemaVersion,2);
+assert.equal(legacy.schemaVersion,3);
 assert.equal(legacy.cardProducts[0].cardBrand,"Visa");
 assert.deepEqual(CARD_BRANDS,["American Express","JCB","MasterCard","NAPAS","Union Pay","Visa"]);
 assert.equal(normalizeCardBrand("Mastercard"),"MasterCard");
