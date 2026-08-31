@@ -1,4 +1,4 @@
-import {createEmptyData} from "./default-data.js?v=20260830-customer-tagsv5";
+import {createEmptyData} from "./default-data.js?v=20260901-empty-state-v1";
 import {parseMoney} from "./money.js";
 import {toStorageDate} from "./date.js";
 import {normalizeCardBrand,normalizeCardRank,normalizeOwnershipType} from "./card-types.js?v=20260831-cardranksv8";
@@ -9,6 +9,7 @@ const normalizeSpecial=value=>text(value).normalize("NFD").replace(/[\u0300-\u03
 const day = value => { const n=Number(value); return Number.isInteger(n)&&n>=1&&n<=31?n:""; };
 const uniqueTextArray=value=>[...new Set((Array.isArray(value)?value:value?[value]:[]).map(text).filter(Boolean))];
 export function canonicalize(input={}){
+  if(!input||typeof input!=="object"||Array.isArray(input))input={};
   const base=createEmptyData(input.deviceId||uuid()), now=new Date().toISOString();
   const customers=(Array.isArray(input.customers)?input.customers:[]).map(x=>({id:x.id||uuid(),customerCode:text(x.customerCode),fullName:text(x.fullName),phone:text(x.phone),email:text(x.email),dateOfBirth:toStorageDate(x.dateOfBirth),address:text(x.address),personInCharge:text(x.personInCharge),notes:text(x.notes),createdAt:x.createdAt||now,updatedAt:x.updatedAt||now}));
   const cycleMode=value=>value==="statement"||normalizeSpecial(value).includes("sao ke")?"statement":"monthly";
