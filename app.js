@@ -1,4 +1,4 @@
-import {LocalRepository,uuid} from "./services/local-repository.js?v=20260901-priority-root-fix-v3";
+import {LocalRepository,uuid} from "./services/local-repository.js?v=20260901-mcc-crud-fix-v1";
 import {DriveAuth} from "./services/drive-auth.js?v=20260901-gis-auth-fix";
 import {DriveRepository} from "./services/drive-repository.js?v=20260830-customercardsv3";
 import {SyncService} from "./services/sync-service.js?v=20260901-priority-root-fix-v3";
@@ -7,7 +7,7 @@ import {formatDate,formatDay,toStorageDate} from "./services/date.js?v=20260830-
 import {compareText,sortByLabel,compareCards,compareCardId,compareCustomerCardLinks,buildSortedCustomerCardRows,compareCustomers} from "./services/sorting.js?v=20260830-customer-detail-sortv9";
 import {CARD_BRANDS,CARD_RANKS,OWNERSHIP_TYPES,normalizeCardBrand,normalizeCardRank,normalizeOwnershipType} from "./services/card-types.js?v=20260831-cardranksv8";
 import {calculateEffectiveCreditLimit} from "./services/credit-limit.js?v=20260830-effective-limitv7";
-import {renderCashbackFeatures,renderCashbackDashboard} from "./services/cashback-feature-ui.js?v=20260901-priority-root-fix-v3";
+import {renderCashbackFeatures,renderCashbackDashboard} from "./services/cashback-feature-ui.js?v=20260901-mcc-crud-fix-v1";
 import {applyHostBootstrapData} from "./services/host-bootstrap.js?v=20260901-priority-root-fix-v3";
 
 const $=(selector,root=document)=>root.querySelector(selector), $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
@@ -277,7 +277,7 @@ function bindTables(){
   $$('[data-compact-apply]').forEach(button=>button.onclick=()=>{const group=button.dataset.compactApply;filters[group]||={};$$(`[data-compact-panel="${group}"] [data-compact-filter]`).forEach(select=>{const key=select.dataset.compactFilter.split(".")[1],enabled=select.closest("label")?.querySelector('[data-compact-enable]')?.checked;filters[group][key]=enabled?select.value:"";});group==="customers"?renderCustomers():renderCards();bindTables();});
   $$('[data-compact-clear]').forEach(button=>button.onclick=()=>{const group=button.dataset.compactClear,q=filters[group]?.q||"";filters[group]={q};group==="customers"?renderCustomers():renderCards();bindTables();});
   $$('[data-clear-filter]').forEach(el=>el.onclick=()=>{filters[currentView]={};render();});
-  $$('tr[data-id]').forEach(row=>{row.onclick=event=>{if(event.target.closest('[data-responsive-toggle]'))return;const table=row.closest("table");$$('tr.selected',table).forEach(x=>x.classList.remove("selected"));row.classList.add("selected");};row.ondblclick=()=>openDetail(row.closest("table").dataset.entity,row.dataset.id);row.oncontextmenu=e=>{e.preventDefault();openContext(e,row.closest("table").dataset.entity,row.dataset.id);};});
+  $$('table[data-entity] tr[data-id]').forEach(row=>{row.onclick=event=>{if(event.target.closest('[data-responsive-toggle]'))return;const table=row.closest("table");$$('tr.selected',table).forEach(x=>x.classList.remove("selected"));row.classList.add("selected");};row.ondblclick=()=>openDetail(row.closest("table").dataset.entity,row.dataset.id);row.oncontextmenu=e=>{e.preventDefault();openContext(e,row.closest("table").dataset.entity,row.dataset.id);};});
   $$('th[data-sort]').forEach(th=>th.onclick=()=>{const table=th.closest("table"),body=$("tbody",table),index=Number(th.dataset.sort),direction=th.dataset.direction==="asc"?"desc":"asc";$$('th[data-sort]',table).forEach(x=>{delete x.dataset.direction;});th.dataset.direction=direction;const rows=$$('tr',body).sort((a,b)=>{const left=$("td:nth-child("+(index+1)+")",a)?.innerText.trim()||"",right=$("td:nth-child("+(index+1)+")",b)?.innerText.trim()||"";const ln=Number(left.replace(/\D/g,"")),rn=Number(right.replace(/\D/g,"")),result=left&&right&&Number.isFinite(ln)&&Number.isFinite(rn)&&/\d/.test(left)&&/\d/.test(right)?ln-rn:left.localeCompare(right,"vi",{sensitivity:"base"});return direction==="asc"?result:-result;});rows.forEach(row=>body.append(row));});
   $$('[data-add]').forEach(x=>x.onclick=()=>openForm(x.dataset.add));$$('[data-edit-selected]').forEach(x=>x.onclick=()=>selectedAction(x.dataset.editSelected,"edit"));$$('[data-delete-selected]').forEach(x=>x.onclick=()=>selectedAction(x.dataset.deleteSelected,"delete"));
   $$('[data-responsive-customer-detail]').forEach(button=>button.onclick=event=>{event.stopPropagation();openCustomerDetail(button.dataset.responsiveCustomerDetail);});
