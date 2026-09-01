@@ -1,0 +1,11 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {programMccDisplay,programTableViewModel} from "../services/cashback-feature-ui.js";
+import {canonicalize} from "../services/local-repository.js";
+
+const mcc=[{id:"food",name:"Ăn uống",codes:["5814","5812"]},{id:"market",name:"Siêu thị",codes:["5411","5499"]},{id:"edu",name:"Giáo dục",codes:["8211"]}],product={id:"p",cardId:"SACOM-Cashback",cardName:"Visa Platinum Cashback"},program={id:"pr",bankCardProductId:"p",name:"Đi lại",rate:16.8,maxCashback:680000,eligibleTarget:4047619,totalTarget:null,mccSelectionMode:"selected",mccCategoryIds:["food","market"],excludedMccCategoryIds:[],transactionMethod:"Online",notes:"Ghi chú dài",status:"inactive",sharedCashbackGroup:"SHARED_OLD",exclusiveMode:"none"};
+test("table model shows only Card ID and never appends product name",()=>{const view=programTableViewModel(program,product,mcc,[program]);assert.equal(view.cardId,"SACOM-Cashback");assert.equal(view.cardId.includes(product.cardName),false);});
+test("selected MCC codes and group names are derived centrally",()=>{const value=programMccDisplay(program,mcc);assert.equal(value.codes,"5814, 5812, 5411, 5499");assert.equal(value.groups,"Ăn uống, Siêu thị");});
+test("all MCC and exclusions display without duplicating codes",()=>{assert.deepEqual(programMccDisplay({...program,mccSelectionMode:"all",mccCategoryIds:[],excludedMccCategoryIds:[]},mcc),{codes:"Tất cả",groups:"Tất cả"});assert.deepEqual(programMccDisplay({...program,mccSelectionMode:"all",mccCategoryIds:[],excludedMccCategoryIds:["edu"]},mcc),{codes:"Tất cả",groups:"Tất cả, trừ Giáo dục"});});
+test("notes and empty note table values",()=>{assert.equal(programTableViewModel(program,product,mcc,[program]).notes,"Ghi chú dài");assert.equal(programTableViewModel({...program,notes:""},product,mcc,[program]).notes,"—");});
+test("backend status and shared cashback group survive canonicalization",()=>{const state=canonicalize({cardProducts:[product],mccCategories:mcc,cashbackPrograms:[program]}),saved=state.cashbackPrograms[0];assert.equal(saved.status,"inactive");assert.equal(saved.sharedCashbackGroup,"SHARED_OLD");assert.deepEqual(canonicalize(state),state);});
