@@ -1,4 +1,4 @@
-import {calculateCashbackCycle,daysRemaining} from "./cashback-cycle.js";
+import {calculateCashbackCycle,customerCardCycleConfig,daysRemaining} from "./cashback-cycle.js?v=20260901-statement-day-owner-v1";
 import {isMccCategoryEligible} from "./cashback-program.js?v=20260901-drive-connect-hotfix-v82";
 import {normalizeExclusiveProgram,resolveExclusiveGroupProgress} from "./cashback-exclusive.js?v=20260901-spend-targets-v1";
 
@@ -6,7 +6,7 @@ export const isProgramEligible=(program,tx)=>!!program&&program.status!=="inacti
 
 export function calculateProgress({customerCard,product,program,transactions=[],referenceDate=new Date(),programs=[]}){
  if(!customerCard||!product||!program)return {valid:false,status:"configuration-incomplete",warning:"Chưa có đủ cấu hình chương trình hoàn tiền."};
- const mode=customerCard.cashbackCycleModeOverride||product.cashbackCycleMode||"monthly",statementDay=customerCard.statementDay||product.defaultStatementDay,cycle=calculateCashbackCycle({mode,statementDay,referenceDate});if(!cycle.valid)return {...cycle,status:"configuration-incomplete"};
+ const {mode,statementDay}=customerCardCycleConfig(customerCard,product),cycle=calculateCashbackCycle({mode,statementDay,referenceDate});if(!cycle.valid)return {...cycle,status:"configuration-incomplete"};
  const cardTx=transactions.filter(tx=>tx.customerCardId===customerCard.id&&tx.status!=="cancelled"&&tx.date>=cycle.start&&tx.date<=cycle.end),totalCardSpend=cardTx.reduce((sum,tx)=>sum+Number(tx.amount||0),0),eligibleTx=cardTx.filter(tx=>tx.cashbackProgramId===program.id&&isProgramEligible(program,tx)),eligibleSpend=eligibleTx.reduce((sum,tx)=>sum+Number(tx.amount||0),0),rate=Number(program.rate)||0;
  const eligibleTarget=program.maxCashbackUnlimited?null:(Number(program.eligibleTarget)||((Number(program.maxCashback)||0)/(rate/100||1))),totalTarget=program.totalTarget==null?null:Number(program.totalTarget),remainingEligibleSpend=eligibleTarget==null?null:Math.max(0,eligibleTarget-eligibleSpend),remainingTotalSpend=totalTarget==null?null:Math.max(0,totalTarget-totalCardSpend),eligibleTargetReached=eligibleTarget==null?true:eligibleSpend>=eligibleTarget,totalTargetReached=totalTarget==null?true:totalCardSpend>=totalTarget,programConditionReached=eligibleTargetReached&&totalTargetReached;
  let cashbackEarnedRaw=eligibleSpend*rate/100;if(!program.maxCashbackUnlimited)cashbackEarnedRaw=Math.min(cashbackEarnedRaw,Number(program.maxCashback)||0);if(!program.maxCashbackUnlimited&&eligibleTargetReached)cashbackEarnedRaw=Number(program.maxCashback)||cashbackEarnedRaw;

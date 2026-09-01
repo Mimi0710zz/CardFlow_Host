@@ -1,4 +1,4 @@
-import {calculateProgress,isProgramEligible} from "./cashback-progress.js?v=20260901-spend-targets-v1";
+import {calculateProgress,isProgramEligible} from "./cashback-progress.js?v=20260901-statement-day-owner-v1";
 import {getProgramPriority} from "./cashback-program.js?v=20260901-drive-connect-hotfix-v82";
 function coordinationRow(state,customerCard,product,program,referenceDate){
  const customer=state.customers.find(x=>x.id===customerCard.customerId);if(!customer)return null;
