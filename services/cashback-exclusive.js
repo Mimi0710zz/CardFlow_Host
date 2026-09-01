@@ -59,10 +59,10 @@ export function resolveExclusiveGroupProgress({programs=[],transactions=[],custo
  const results={};
  for(const program of members){
   const validation=validateExclusiveProgram(program,programs);
-  let spend=0,reached=null;
-  const txs=transactions.filter(tx=>tx?.customerCardId===customerCard?.id&&tx.status!=="cancelled"&&tx.cashbackProgramId===program.id&&tx.date>=cycle?.start&&tx.date<=cycle?.end&&eligible(program,tx)).map((tx,index)=>({tx,index,time:timeInfo(tx)})).sort((a,b)=>a.time.key-b.time.key||(a.time.precise&&b.time.precise?String(a.tx.id||"").localeCompare(String(b.tx.id||"")):a.index-b.index));
-  for(const entry of txs){spend+=Number(entry.tx.amount)||0;if(!reached&&validation.valid&&spend>=Number(program.eligibleTarget))reached={reachedAt:entry.time.value,reachedKey:entry.time.key,reachedPrecise:entry.time.precise,reachedTransactionId:entry.tx.id||null};}
-  results[program.id]={programId:program.id,eligibleSpend:spend,...(reached||{}),configurationValid:validation.valid,configurationError:validation.error||""};
+  let spend=0,totalSpend=0,reached=null;const eligibleTarget=Number(program.eligibleTarget),totalTarget=program.totalTarget==null?null:Number(program.totalTarget);
+  const txs=transactions.filter(tx=>tx?.customerCardId===customerCard?.id&&tx.status!=="cancelled"&&tx.date>=cycle?.start&&tx.date<=cycle?.end).map((tx,index)=>({tx,index,time:timeInfo(tx)})).sort((a,b)=>a.time.key-b.time.key||(a.time.precise&&b.time.precise?String(a.tx.id||"").localeCompare(String(b.tx.id||"")):a.index-b.index));
+  for(const entry of txs){totalSpend+=Number(entry.tx.amount)||0;if(entry.tx.cashbackProgramId===program.id&&eligible(program,entry.tx))spend+=Number(entry.tx.amount)||0;const eligibleReached=spend>=eligibleTarget,totalReached=totalTarget==null||totalSpend>=totalTarget;if(!reached&&validation.valid&&eligibleReached&&totalReached)reached={reachedAt:entry.time.value,reachedKey:entry.time.key,reachedPrecise:entry.time.precise,reachedTransactionId:entry.tx.id||null};}
+  results[program.id]={programId:program.id,eligibleSpend:spend,totalCardSpend:totalSpend,...(reached||{}),configurationValid:validation.valid,configurationError:validation.error||""};
  }
  const reached=members.map(program=>results[program.id]).filter(item=>item.reachedAt).sort((a,b)=>a.reachedKey-b.reachedKey);
  let winnerProgramId=null,tieProgramIds=[];
