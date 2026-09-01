@@ -39,7 +39,7 @@ main{padding:28px;min-width:0}
 .feature-modal .total-target-toggle{align-content:center}.feature-modal .total-target-toggle>span{display:flex;align-items:center;gap:8px;min-height:42px;color:var(--ink)}.feature-modal .total-target-toggle input[type="checkbox"]{width:18px;height:18px;min-height:auto;padding:0;accent-color:var(--nav2)}.feature-modal .field>small{color:var(--muted);font-size:11px;line-height:1.4}
 .coord-list{display:grid;gap:8px}.coord-list>div{display:grid;gap:3px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#f8fbff}.coord-list span{color:var(--muted);font-size:12px}
 .manual-note,.system-reminder{display:block;white-space:normal}.manual-note{color:#455468}.system-reminder{margin-top:5px;padding:5px 7px;border-left:3px solid var(--warn);background:#fff8e8;color:#765000;font-weight:700}
-.cashback-kpis{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:16px}.cashback-dashboard{margin-bottom:16px}.coordination-inputs input{min-width:190px}
+.kpis.dashboard-kpis{grid-template-columns:repeat(6,minmax(0,1fr))}.cashback-dashboard{margin-bottom:16px}.coordination-inputs input{min-width:190px}
 .period-controls{display:flex;align-items:end;gap:8px}.period-controls label{display:grid;gap:4px;color:var(--muted);font-size:11px;font-weight:700}.period-controls select{min-width:105px;border:1px solid var(--line);border-radius:9px;padding:8px 10px;background:#fff;color:var(--ink)}
 .feature-filter-toolbar{display:grid;grid-template-columns:minmax(240px,1.6fr) repeat(6,minmax(125px,1fr)) auto;align-items:center}.feature-filter-toolbar .search{min-width:0}.feature-filter-toolbar select{max-width:none;min-width:0}
 .feature-main-toolbar{flex-wrap:nowrap}.feature-main-toolbar .search{flex:0 1 520px}.toolbar-spacer{flex:1}.filter-trigger{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}.filter-trigger .icon{width:17px;height:17px}.filter-trigger.active{border-color:#8fb1d2;background:#eaf3fb;color:var(--nav2)}.filter-trigger b{display:grid;place-items:center;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:var(--nav2);color:#fff;font-size:11px}.filter-trigger b[hidden]{display:none}
@@ -95,6 +95,9 @@ table[data-feature-table="program"]{min-width:1180px}.program-mcc-groups{min-wid
 }
 @media(max-width:900px){.dashboard-rankings>.panel{min-height:0}}
 @media(max-width:479px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.drive-actions{grid-template-columns:1fr}.topbar h1{font-size:20px}}
+
+@media (min-width:768px) and (max-width:1199px){.kpis.dashboard-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:767px){.kpis.dashboard-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 /* Customer editor: manage owned cards directly in Add/Edit Customer */
 .customer-editor-modal .modal-card{width:min(1380px,100%);display:flex;flex-direction:column;overflow:hidden}
