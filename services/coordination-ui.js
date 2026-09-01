@@ -1,7 +1,12 @@
 import {formatMoney,parseMoney,bindVndInput} from "./money.js";
 import {formatDate} from "./date.js";
+<<<<<<< HEAD
 import {buildCoordinationRows,buildCoordinationRowsForSelection,recommendOrders} from "./order-coordination.js?v=20260901-cashback-target-auto-v8";
 import {getProgramPriority,getMccSelectionMode} from "./cashback-program.js?v=20260901-cashback-target-auto-v8";
+=======
+import {buildCoordinationRows,buildCoordinationRowsForSelection,recommendOrders} from "./order-coordination.js?v=20260901-cashback-rate-decimal-v7";
+import {getProgramPriority,getMccSelectionMode} from "./cashback-program.js?v=20260901-cashback-rate-decimal-v7";
+>>>>>>> c3daf67232f9a2bb394c17952107f3809ea102de
 
 const esc=value=>String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
 const normalize=value=>String(value??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").toLowerCase();

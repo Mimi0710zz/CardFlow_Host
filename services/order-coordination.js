@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 import {calculateProgress,isProgramEligible} from "./cashback-progress.js?v=20260901-cashback-target-auto-v8";
 import {getProgramPriority} from "./cashback-program.js?v=20260901-cashback-target-auto-v8";
+=======
+import {calculateProgress,isProgramEligible} from "./cashback-progress.js?v=20260901-cashback-rate-decimal-v7";
+import {getProgramPriority} from "./cashback-program.js?v=20260901-cashback-rate-decimal-v7";
+>>>>>>> c3daf67232f9a2bb394c17952107f3809ea102de
 function coordinationRow(state,customerCard,product,program,referenceDate){
  const customer=state.customers.find(x=>x.id===customerCard.customerId);if(!customer)return null;
  return {customer,customerCard,product,program,progress:calculateProgress({customerCard,product,program,transactions:state.transactions,programs:state.cashbackPrograms,referenceDate})};
