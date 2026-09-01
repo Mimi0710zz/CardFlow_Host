@@ -6,12 +6,14 @@ import {getProgramPriority,getMccSelectionMode} from "./cashback-program.js?v=20
 const esc=value=>String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
 const normalize=value=>String(value??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").toLowerCase();
 const money=value=>formatMoney(value,true);
-const STATUS={urgent:"Cần đánh gấp",needed:"Cần đánh",near:"Gần đạt",completed:"Đã max",configuration:"Thiếu cấu hình"};
+const STATUS={urgent:"Cần đánh gấp",needed:"Cần đánh",near:"Gần đạt",completed:"Đã chốt",locked:"Đã vô hiệu",tie:"Cần xác nhận",configuration:"Thiếu cấu hình"};
 export const COORDINATION_THRESHOLDS={urgentDays:3,nearPercent:80};
 export const coordinationUi={activeTab:"reminders",selectedCardProductId:"",selectedProgramId:"",customerSearch:"",statusFilter:"",sortMode:"priority",focusCustomerCardId:""};
 
 export function coordinationDisplayStatus(row){
  if(!row?.progress?.valid||row.progress.status==="configuration-incomplete")return "configuration";
+ if(row.progress.status==="locked")return "locked";
+ if(row.progress.status==="needs-confirmation")return "tie";
  if(row.progress.status==="completed")return "completed";
  if(Number(row.progress.daysRemaining)<=COORDINATION_THRESHOLDS.urgentDays)return "urgent";
  if(Number(row.progress.progressPercent)>=COORDINATION_THRESHOLDS.nearPercent)return "near";
@@ -48,9 +50,9 @@ function summary(program,state){
 function reminderRows(state){
  const rows=buildCoordinationRows(state);const configuredCards=new Set(rows.map(row=>row.customerCard.id));
  const missing=state.customerCards.filter(card=>card.status==="active"&&!configuredCards.has(card.id)).map(card=>{const product=state.cardProducts.find(item=>item.id===card.cardProductId),customer=state.customers.find(item=>item.id===card.customerId);return product&&customer?{customer,customerCard:card,product,program:null,progress:{valid:false,status:"configuration-incomplete",warning:"Chưa khai báo chương trình hoàn tiền cho thẻ này."}}:null;}).filter(Boolean);
- return sortCoordinationRows([...rows.filter(row=>row.progress.status!=="completed"),...missing]);
+ const active=rows.filter(row=>["incomplete","configuration-incomplete","needs-confirmation"].includes(row.progress.status)),grouped=[],byKey=new Map();for(const row of active){if(row.program?.exclusiveMode!=="first_reached"){grouped.push(row);continue;}const key=`${row.customerCard.id}|${row.progress.cycleStart}|${row.program.exclusiveGroupId}`;if(!byKey.has(key))byKey.set(key,[]);byKey.get(key).push(row);}for(const candidates of byKey.values()){const preferred=[...candidates].sort((a,b)=>Number(a.progress.remainingEligibleSpend??Infinity)-Number(b.progress.remainingEligibleSpend??Infinity))[0];grouped.push({...preferred,exclusiveCandidates:candidates});}return sortCoordinationRows([...grouped,...missing]);
 }
-function reminderCard(row){const status=coordinationDisplayStatus(row),remaining=row.progress.remainingEligibleSpend==null?"Chưa có mục tiêu":`Còn phải đánh ${money(row.progress.remainingEligibleSpend)}`,days=row.progress.daysRemaining==null?"—":`Còn ${row.progress.daysRemaining} ngày`;return `<article class="coord-reminder ${status}" data-reminder-card="${esc(row.customerCard.id)}|${esc(row.program?.id||"")}"><div><strong>${esc(row.customer.fullName)} · ${esc(row.product.cardId)}</strong><span>${esc(row.program?.name||"Chưa có chương trình")}</span></div><div class="coord-reminder-metrics"><b>${esc(remaining)}</b><span>${esc(days)}</span>${row.progress.warning?`<small>${esc(row.progress.warning)}</small>`:""}</div><button type="button" class="coord-link" data-open-reminder="${esc(row.customerCard.id)}|${esc(row.program?.id||"")}">Xem chi tiết →</button></article>`;}
+function reminderCard(row){const status=coordinationDisplayStatus(row),remaining=row.progress.remainingEligibleSpend==null?"Chưa có mục tiêu":`Còn phải đánh ${money(row.progress.remainingEligibleSpend)}`,days=row.progress.daysRemaining==null?"—":`Còn ${row.progress.daysRemaining} ngày`,alternatives=row.exclusiveCandidates?.length?`<small>Hai điều kiện thay thế: ${row.exclusiveCandidates.map(item=>`${esc(item.program.name)} — còn ${money(item.progress.remainingEligibleSpend)}`).join(" · ")}</small><b>Ưu tiên: ${esc(row.program.name)}</b>`:"";return `<article class="coord-reminder ${status}" data-reminder-card="${esc(row.customerCard.id)}|${esc(row.program?.id||"")}"><div><strong>${esc(row.customer.fullName)} · ${esc(row.product.cardId)}</strong><span>${esc(row.program?.name||"Chưa có chương trình")}</span></div><div class="coord-reminder-metrics">${alternatives||`<b>${esc(remaining)}</b>`}<span>${esc(days)}</span>${row.progress.warning?`<small>${esc(row.progress.warning)}</small>`:""}</div><button type="button" class="coord-link" data-open-reminder="${esc(row.customerCard.id)}|${esc(row.program?.id||"")}">Xem chi tiết →</button></article>`;}
 function renderReminders(state){
  const rows=reminderRows(state),counts={needed:0,soon:0,configuration:0};rows.forEach(row=>{const status=coordinationDisplayStatus(row);if(["urgent","needed","near"].includes(status))counts.needed+=1;if(row.progress.valid&&Number(row.progress.daysRemaining)<=5)counts.soon+=1;if(status==="configuration")counts.configuration+=1;});
  const groups=[["urgent","Cần đánh gấp"],["needed","Cần đánh"],["near","Gần hoàn thành"],["configuration","Thiếu cấu hình"]];
