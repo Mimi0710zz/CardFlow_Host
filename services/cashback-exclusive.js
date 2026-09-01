@@ -17,6 +17,36 @@ export function validateExclusiveProgram(program,programs=[]){
  return crossCard?{valid:false,error:"Nhóm loại trừ không được dùng chung giữa các Card ID."}:{valid:true};
 }
 
+export function exclusiveProgramOptions(programs=[],bankCardProductId="",currentProgramId=""){
+ return programs.filter(item=>item?.id!==currentProgramId&&item?.bankCardProductId===bankCardProductId).sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"vi",{sensitivity:"base"}));
+}
+
+export function selectedExclusiveProgramIds(program={},programs=[]){
+ const normalized=normalizeExclusiveProgram(program);if(normalized.exclusiveMode!==EXCLUSIVE_FIRST_REACHED||!normalized.exclusiveGroupId)return [];
+ return exclusiveProgramOptions(programs,program.bankCardProductId,program.id).filter(item=>normalizeExclusiveProgram(item).exclusiveGroupId===normalized.exclusiveGroupId).map(item=>item.id);
+}
+
+const normalizeSingleMemberGroups=programs=>{const counts=new Map();for(const item of programs){const normalized=normalizeExclusiveProgram(item);if(normalized.exclusiveMode===EXCLUSIVE_FIRST_REACHED&&normalized.exclusiveGroupId)counts.set(normalized.exclusiveGroupId,(counts.get(normalized.exclusiveGroupId)||0)+1);}return programs.map(item=>{const normalized=normalizeExclusiveProgram(item);return normalized.exclusiveMode===EXCLUSIVE_FIRST_REACHED&&counts.get(normalized.exclusiveGroupId)<2?{...item,exclusiveMode:EXCLUSIVE_NONE,exclusiveGroupId:null}:item;});};
+
+export function applyExclusiveProgramSelection({programs=[],currentProgram,selectedProgramIds=[],makeId=()=>crypto.randomUUID()}={}){
+ const source=(Array.isArray(programs)?programs:[]).map(item=>({...item})),selectedIds=[...new Set(selectedProgramIds)].filter(id=>id&&id!==currentProgram?.id),mode=currentProgram?.exclusiveMode===EXCLUSIVE_FIRST_REACHED?EXCLUSIVE_FIRST_REACHED:EXCLUSIVE_NONE,old=source.find(item=>item.id===currentProgram?.id),oldGroup=normalizeExclusiveProgram(old||{}).exclusiveGroupId;
+ const candidateIds=new Set(exclusiveProgramOptions(source,currentProgram?.bankCardProductId,currentProgram?.id).map(item=>item.id));
+ if(mode===EXCLUSIVE_FIRST_REACHED&&selectedIds.length===0)return {valid:false,error:"Vui lòng chọn ít nhất một chương trình loại trừ cùng nhóm.",programs:source};
+ if(selectedIds.some(id=>!candidateIds.has(id)))return {valid:false,error:"Chương trình loại trừ phải thuộc cùng Card ID.",programs:source};
+ let next=source.filter(item=>item.id!==currentProgram.id);next.push({...currentProgram,exclusiveMode:mode,exclusiveGroupId:null});
+ if(mode===EXCLUSIVE_NONE){next=next.map(item=>item.id===currentProgram.id?{...item,exclusiveMode:EXCLUSIVE_NONE,exclusiveGroupId:null}:item);return {valid:true,groupId:null,programs:normalizeSingleMemberGroups(next)};}
+ const selectedPrograms=next.filter(item=>selectedIds.includes(item.id)),externalGroupIds=[...new Set(selectedPrograms.map(item=>normalizeExclusiveProgram(item).exclusiveGroupId).filter(group=>group&&group!==oldGroup))].sort(),survivingGroupId=externalGroupIds[0]||oldGroup||`EXG_${makeId()}`;
+ const joinedIds=new Set([currentProgram.id,...selectedIds]);for(const item of next)if(externalGroupIds.includes(normalizeExclusiveProgram(item).exclusiveGroupId))joinedIds.add(item.id);
+ next=next.map(item=>{
+  if(item.bankCardProductId!==currentProgram.bankCardProductId)return item;
+  const group=normalizeExclusiveProgram(item).exclusiveGroupId;
+  if(joinedIds.has(item.id))return {...item,exclusiveMode:EXCLUSIVE_FIRST_REACHED,exclusiveGroupId:survivingGroupId};
+  if(group===oldGroup||externalGroupIds.includes(group))return {...item,exclusiveMode:EXCLUSIVE_NONE,exclusiveGroupId:null};
+  return item;
+ });
+ return {valid:true,groupId:survivingGroupId,programs:normalizeSingleMemberGroups(next)};
+}
+
 const eligible=(program,tx)=>program.status!=="inactive"&&(!program.startDate||tx.date>=program.startDate)&&(!program.endDate||tx.date<=program.endDate)&&(!program.transactionMethod||program.transactionMethod===tx.transactionMethod)&&isMccCategoryEligible(program,tx.mccCategoryId);
 const timeInfo=tx=>{
  const candidates=[tx.timestamp,tx.dateTime,tx.datetime];
