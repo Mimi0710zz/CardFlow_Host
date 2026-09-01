@@ -24,3 +24,12 @@ export function programReferencesMcc(program,mccCategoryId){
   if(getMccSelectionMode(program)==="all")return !getExcludedMccCategoryIds(program).includes(id);
   return getSelectedMccCategoryIds(program).includes(id);
 }
+
+// Backward-compatible aliases used by earlier HOST tests/integrations.
+export function isProgramMccEligible(program,mccCategoryId){return isMccCategoryEligible(program,mccCategoryId);}
+export function normalizeProgramMccSelection(program){
+  const mode=getMccSelectionMode(program);
+  return mode==="all"
+    ? {mccSelectionMode:"all",eligibleMccCategoryIds:[],excludedMccCategoryIds:getExcludedMccCategoryIds(program)}
+    : {mccSelectionMode:"selected",eligibleMccCategoryIds:getSelectedMccCategoryIds(program),excludedMccCategoryIds:[]};
+}

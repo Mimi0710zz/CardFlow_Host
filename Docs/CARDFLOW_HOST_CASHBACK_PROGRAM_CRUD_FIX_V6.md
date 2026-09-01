@@ -18,7 +18,7 @@ Sau local-first/auto-sync, object state toàn cục có thể đã được thay
 - Edit chương trình lookup từ `latestState.cashbackPrograms`, không lookup từ closure state cũ.
 - Form Card ID/MCC khi mở cũng dùng dữ liệu live mới nhất.
 - Không đổi schema, ID cũ, Drive namespace hoặc dữ liệu người dùng.
-- Cache bust mới: `20260901-cashback-program-crud-v6`.
+- Cache bust mới: `20260901-cashback-rate-decimal-v7`.
 
 ## Kiểm thử
 

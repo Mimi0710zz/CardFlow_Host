@@ -1,5 +1,5 @@
 import {calculateCashbackCycle,daysRemaining} from "./cashback-cycle.js";
-import {isMccCategoryEligible} from "./cashback-program.js?v=20260901-cashback-program-crud-v6";
+import {isMccCategoryEligible} from "./cashback-program.js?v=20260901-cashback-target-auto-v8";
 
 export const isProgramEligible=(program,tx)=>!!program&&program.status!=="inactive"&&(!program.startDate||tx.date>=program.startDate)&&(!program.endDate||tx.date<=program.endDate)&&(!program.transactionMethod||program.transactionMethod===tx.transactionMethod)&&isMccCategoryEligible(program,tx.mccCategoryId);
 
