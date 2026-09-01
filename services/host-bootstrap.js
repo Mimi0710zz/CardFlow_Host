@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import {canonicalize} from "./local-repository.js?v=20260901-cashback-target-auto-v8";
-=======
-import {canonicalize} from "./local-repository.js?v=20260901-cashback-rate-decimal-v7";
->>>>>>> c3daf67232f9a2bb394c17952107f3809ea102de
+import {canonicalize} from "./local-repository.js?v=20260901-drive-connect-hotfix-v82";
 
 export function applyHostBootstrapData(data,{applyState,renderApp,canonicalizeData=canonicalize}={}){
   const nextState=canonicalizeData(data);

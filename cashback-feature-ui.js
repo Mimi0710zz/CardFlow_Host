@@ -1,7 +1,7 @@
 import {formatMoney,parseMoney,bindVndInput,formatVndInput} from "./money.js";
 import {formatDate} from "./date.js";
-import {buildCoordinationRows,recommendOrders} from "./order-coordination.js?v=20260901-cashback-target-auto-v8";
-import {renderCoordinationWorkspace} from "./coordination-ui.js?v=20260901-cashback-target-auto-v8";
+import {buildCoordinationRows,recommendOrders} from "./order-coordination.js?v=20260901-drive-connect-hotfix-v82";
+import {renderCoordinationWorkspace} from "./coordination-ui.js?v=20260901-drive-connect-hotfix-v82";
 import {getProgramPriority,getMccSelectionMode,isMccCategoryEligible} from "./cashback-program.js?v=20260901-cashback-target-auto-v8";
 
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));

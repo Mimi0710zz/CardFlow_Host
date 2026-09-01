@@ -1,9 +1,5 @@
 import {calculateCashbackCycle,daysRemaining} from "./cashback-cycle.js";
-<<<<<<< HEAD
-import {isMccCategoryEligible} from "./cashback-program.js?v=20260901-cashback-target-auto-v8";
-=======
-import {isMccCategoryEligible} from "./cashback-program.js?v=20260901-cashback-rate-decimal-v7";
->>>>>>> c3daf67232f9a2bb394c17952107f3809ea102de
+import {isMccCategoryEligible} from "./cashback-program.js?v=20260901-drive-connect-hotfix-v82";
 
 export const isProgramEligible=(program,tx)=>!!program&&program.status!=="inactive"&&(!program.startDate||tx.date>=program.startDate)&&(!program.endDate||tx.date<=program.endDate)&&(!program.transactionMethod||program.transactionMethod===tx.transactionMethod)&&isMccCategoryEligible(program,tx.mccCategoryId);
 

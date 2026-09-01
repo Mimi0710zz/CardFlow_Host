@@ -2,11 +2,7 @@ import {createEmptyData} from "./default-data.js?v=20260901-empty-state-v1";
 import {parseMoney} from "./money.js";
 import {toStorageDate} from "./date.js";
 import {normalizeCardBrand,normalizeCardRank,normalizeOwnershipType} from "./card-types.js?v=20260831-cardranksv8";
-<<<<<<< HEAD
-import {getProgramPriority} from "./cashback-program.js?v=20260901-cashback-target-auto-v8";
-=======
-import {getProgramPriority} from "./cashback-program.js?v=20260901-cashback-rate-decimal-v7";
->>>>>>> c3daf67232f9a2bb394c17952107f3809ea102de
+import {getProgramPriority} from "./cashback-program.js?v=20260901-drive-connect-hotfix-v82";
 const DATA_KEY="cardflow-host-data-v1", META_KEY="cardflow-host-sync-meta-v1";
 export const uuid = () => crypto.randomUUID?.() || `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const text = value => String(value ?? "").trim();
