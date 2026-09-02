@@ -1,4 +1,4 @@
-import {canonicalize} from "./local-repository.js?v=20260901-drive-connect-hotfix-v82";
+import {canonicalize} from "./local-repository.js?v=20260902-transaction-fees-v1";
 
 export function applyHostBootstrapData(data,{applyState,renderApp,canonicalizeData=canonicalize}={}){
   const nextState=canonicalizeData(data);

@@ -1,14 +1,14 @@
-import {LocalRepository,uuid} from "./services/local-repository.js?v=20260901-drive-connect-hotfix-v82";
+import {LocalRepository,uuid} from "./services/local-repository.js?v=20260902-transaction-fees-v1";
 import {DriveAuth} from "./services/drive-auth.js?v=20260901-gis-auth-fix";
 import {DriveRepository} from "./services/drive-repository.js?v=20260830-customercardsv3";
-import {SyncService} from "./services/sync-service.js?v=20260901-drive-connect-hotfix-v82";
+import {SyncService} from "./services/sync-service.js?v=20260902-transaction-fees-v1";
 import {formatMoney,parseMoney,formatVndInput,bindVndInput} from "./services/money.js?v=20260830-customer-tagsv5";
 import {formatDate,formatDay,toStorageDate} from "./services/date.js?v=20260830-customercardsv3";
 import {compareText,sortByLabel,compareCards,compareCardId,compareCustomerCardLinks,buildSortedCustomerCardRows,compareCustomers} from "./services/sorting.js?v=20260830-customer-detail-sortv9";
 import {CARD_BRANDS,CARD_RANKS,OWNERSHIP_TYPES,normalizeCardBrand,normalizeCardRank,normalizeOwnershipType} from "./services/card-types.js?v=20260831-cardranksv8";
 import {calculateEffectiveCreditLimit} from "./services/credit-limit.js?v=20260830-effective-limitv7";
-import {renderCashbackFeatures,renderCashbackDashboard} from "./services/cashback-feature-ui.js?v=20260901-dashboard-kpi-six-v1";
-import {applyHostBootstrapData} from "./services/host-bootstrap.js?v=20260901-drive-connect-hotfix-v82";
+import {renderCashbackFeatures,renderCashbackDashboard} from "./services/cashback-feature-ui.js?v=20260902-transaction-fees-v1";
+import {applyHostBootstrapData} from "./services/host-bootstrap.js?v=20260902-transaction-fees-v1";
 import {customerCardCycleConfig} from "./services/cashback-cycle.js?v=20260901-statement-day-owner-v1";
 import {currentHostGuideItems,currentAboutIntroduction} from "./services/about-guide-content.js?v=20260901-about-guide-latest-v1";
 
@@ -22,7 +22,7 @@ const VIEW_META={
   dashboard:{title:"Tổng hợp",description:"Tổng quan danh mục khách hàng và thẻ"},
   customers:{title:"Khách hàng",description:"Quản lý khách hàng và thẻ đang sở hữu"},
   cards:{title:"Thẻ ngân hàng",description:"Quản lý sản phẩm thẻ ngân hàng dùng chung"},
-  transactions:{title:"Đơn đánh",description:"Ghi nhận và tra cứu đơn đã thực hiện bằng thẻ khách hàng"},
+  transactions:{title:"Giao Dịch",description:"Ghi nhận và tra cứu giao dịch theo ngày"},
   coordination:{title:"Điều phối đơn",description:"Theo dõi tiến độ và điều phối giao dịch theo chương trình hoàn tiền"},
   programs:{title:"Chương trình hoàn tiền",description:"Cấu hình rule một lần cho từng Thẻ ngân hàng"},
   mcc:{title:"Mã MCC",description:"Danh mục nhóm ngành và mã MCC"},

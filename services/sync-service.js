@@ -1,4 +1,4 @@
-import {canonicalize} from "./local-repository.js?v=20260901-drive-connect-hotfix-v82";
+import {canonicalize} from "./local-repository.js?v=20260902-transaction-fees-v1";
 
 const isDrive404 = error => error?.status === 404 || error?.code === "drive-404" || error?.message === "drive-404";
 
