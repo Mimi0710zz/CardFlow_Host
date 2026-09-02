@@ -10,7 +10,10 @@ export const uuid = () => crypto.randomUUID?.() || `id-${Date.now()}-${Math.rand
 const text = value => String(value ?? "").trim();
 const normalizeSpecial=value=>text(value).normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").toLowerCase();
 const DEFAULT_ORDER_TYPE_CODES=["ZING","TVLK","VNPAY","BH","ALEPAY","TGDD","VMB","POS","BHX","HPAY","VOUCHER","UNICITY","QR","AMWAY","SUN.W","GO","MEGAPAY","LINK MPOS","TRIP"];
+export const DEFAULT_ORDER_TYPE_COLORS=["#2563eb","#0f766e","#7c3aed","#be123c","#ea580c","#15803d","#0891b2","#9333ea","#65a30d","#c2410c","#db2777","#4f46e5","#047857","#b45309","#0284c7","#16a34a","#dc2626","#475569","#ca8a04"];
 const orderTypeIdFromCode=code=>`order-type-${text(code).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")}`;
+export const normalizeColor=value=>/^#[0-9a-f]{6}$/i.test(text(value))?text(value).toLowerCase():"";
+export function orderTypeDefaultColor(code,index=0){const defaultIndex=DEFAULT_ORDER_TYPE_CODES.indexOf(text(code).toUpperCase()),source=defaultIndex>=0?defaultIndex:[...text(code)].reduce((sum,char)=>sum+char.charCodeAt(0),Number(index)||0);return DEFAULT_ORDER_TYPE_COLORS[source%DEFAULT_ORDER_TYPE_COLORS.length];}
 const day = value => { const n=Number(value); return Number.isInteger(n)&&n>=1&&n<=31?n:""; };
 const uniqueTextArray=value=>[...new Set((Array.isArray(value)?value:value?[value]:[]).map(text).filter(Boolean))];
 export function canonicalize(input={}){
@@ -35,9 +38,9 @@ export function canonicalize(input={}){
   const usedMccIds=new Set();
   const mccCategories=(Array.isArray(input.mccCategories)?input.mccCategories:[]).filter(x=>x&&typeof x==="object").map(x=>{let id=text(x.id);if(!id||usedMccIds.has(id)){do{id=uuid();}while(usedMccIds.has(id));}usedMccIds.add(id);return {id,name:text(x.name||x.categoryName),codes:uniqueTextArray(x.codes??x.mcc??x.mccCodes).map(String),description:text(x.description),notes:text(x.notes)};}).filter(x=>x.name);
   const usedOrderTypeIds=new Set(),seenOrderTypeCodes=new Set();
-  const orderTypes=(Array.isArray(input.orderTypes)?input.orderTypes:[]).filter(x=>x&&typeof x==="object").map(x=>{const code=text(x.code||x.orderTypeCode||x.name).toUpperCase();if(!code||seenOrderTypeCodes.has(code))return null;seenOrderTypeCodes.add(code);let id=text(x.id);if(!id||usedOrderTypeIds.has(id)){do{id=uuid();}while(usedOrderTypeIds.has(id));}usedOrderTypeIds.add(id);return {id,code,description:text(x.description),note:text(x.note??x.notes),createdAt:x.createdAt||now,updatedAt:x.updatedAt||now};}).filter(Boolean);
+  const orderTypes=(Array.isArray(input.orderTypes)?input.orderTypes:[]).filter(x=>x&&typeof x==="object").map((x,index)=>{const code=text(x.code||x.orderTypeCode||x.name).toUpperCase();if(!code||seenOrderTypeCodes.has(code))return null;seenOrderTypeCodes.add(code);let id=text(x.id);if(!id||usedOrderTypeIds.has(id)){do{id=uuid();}while(usedOrderTypeIds.has(id));}usedOrderTypeIds.add(id);return {id,code,color:normalizeColor(x.color||x.colour||x.orderTypeColor)||orderTypeDefaultColor(code,index),description:text(x.description),note:text(x.note??x.notes),createdAt:x.createdAt||now,updatedAt:x.updatedAt||now};}).filter(Boolean);
   if(!settings.orderTypesInitialized){
-    DEFAULT_ORDER_TYPE_CODES.forEach(code=>{if(seenOrderTypeCodes.has(code))return;let id=orderTypeIdFromCode(code);while(usedOrderTypeIds.has(id))id=uuid();usedOrderTypeIds.add(id);seenOrderTypeCodes.add(code);orderTypes.push({id,code,description:"",note:"",createdAt:now,updatedAt:now});});
+    DEFAULT_ORDER_TYPE_CODES.forEach(code=>{if(seenOrderTypeCodes.has(code))return;let id=orderTypeIdFromCode(code);while(usedOrderTypeIds.has(id))id=uuid();usedOrderTypeIds.add(id);seenOrderTypeCodes.add(code);orderTypes.push({id,code,color:orderTypeDefaultColor(code),description:"",note:"",createdAt:now,updatedAt:now});});
     settings.orderTypesInitialized=true;
   }
   const mccIds=new Set(mccCategories.map(x=>x.id));
