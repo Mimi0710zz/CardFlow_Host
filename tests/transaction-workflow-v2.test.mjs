@@ -22,7 +22,7 @@ test("Giao Dịch is split into Đánh đơn and Dòng tiền with shared month 
   assert.match(featureSource,/data-transaction-tab="cashflow"/);
   assert.match(featureSource,/startsWith\(monthPrefix\)/);
   assert.doesNotMatch(featureSource,/data-period-day/);
-  assert.match(featureSource,/\["Ngày","Tên KH","Loại đơn","Nhóm MCC","Mã MCC","Loại thẻ \(Card ID\)","Tiền đơn","ChTr hoàn tiền","Ghi chú"\]/);
+  assert.match(featureSource,/\["Ngày","Tên KH","Loại đơn","Nhóm MCC","Mã MCC","Loại thẻ \(Card ID\)","Tiền đơn","Chương trình hoàn tiền","Ghi chú"\]/);
 });
 
 test("cashflow has no add/delete actions and financial grouping styles",()=>{
