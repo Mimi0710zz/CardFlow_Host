@@ -317,3 +317,23 @@ table[data-feature-table="transaction-cashflow"] td:nth-child(13){text-align:cen
 .cashflow-profit-row input[name="profit"]{text-align:right}
 
 .cashflow-group select[name="sourceName"]{text-align:center;text-align-last:center}
+
+
+/* Dòng tiền v8.8: layout modal chuẩn 4 hàng */
+.feature-modal.cashflow-editor-modal .modal-card{width:min(1180px,96vw)}
+.feature-modal.cashflow-editor-modal .modal-body> .cashflow-readonly,
+.feature-modal.cashflow-editor-modal .modal-body> .cashflow-fee-compare,
+.feature-modal.cashflow-editor-modal .modal-body> .cashflow-settlement-grid,
+.feature-modal.cashflow-editor-modal .modal-body> .cashflow-profit-row{grid-column:1/-1}
+.feature-modal.cashflow-editor-modal .cashflow-fee-compare{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.feature-modal.cashflow-editor-modal .cashflow-settlement-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.feature-modal.cashflow-editor-modal .cashflow-profit-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.feature-modal.cashflow-editor-modal .cashflow-status-card{width:100%;max-width:none}
+.feature-modal.cashflow-editor-modal .cashflow-status-card .field{max-width:none}
+@media(max-width:700px){
+  .feature-modal.cashflow-editor-modal .cashflow-fee-compare,
+  .feature-modal.cashflow-editor-modal .cashflow-settlement-grid,
+  .feature-modal.cashflow-editor-modal .cashflow-profit-row{grid-template-columns:1fr}
+  .feature-modal.cashflow-editor-modal .cashflow-profit-row .profit-field{grid-column:1}
+  .feature-modal.cashflow-editor-modal .cashflow-profit-spacer{display:none}
+}
