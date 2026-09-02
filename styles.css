@@ -247,3 +247,39 @@ table[data-feature-table="transaction-order"]{min-width:1160px}table[data-featur
 @media(max-width:760px){.cashflow-readonly{grid-template-columns:1fr 1fr}.cashflow-group{grid-template-columns:1fr}.transaction-subtabs button{flex:1;padding:8px 10px}}
 
 table[data-feature-table="transaction-cashflow"] th:nth-child(7),table[data-feature-table="transaction-cashflow"] th:nth-child(8),table[data-feature-table="transaction-cashflow"] th:nth-child(9){background:#fff1d6}table[data-feature-table="transaction-cashflow"] th:nth-child(10),table[data-feature-table="transaction-cashflow"] th:nth-child(11),table[data-feature-table="transaction-cashflow"] th:nth-child(12),table[data-feature-table="transaction-cashflow"] th:nth-child(13){background:#e2f3ed}
+
+
+/* Transaction cashflow v8.4: frozen identity columns + compact comparison layout */
+table[data-feature-table="transaction-cashflow"]{min-width:1510px;table-layout:fixed}
+table[data-feature-table="transaction-cashflow"] th:nth-child(1),table[data-feature-table="transaction-cashflow"] td:nth-child(1){width:92px;min-width:92px;max-width:92px}
+table[data-feature-table="transaction-cashflow"] th:nth-child(2),table[data-feature-table="transaction-cashflow"] td:nth-child(2){width:170px;min-width:170px;max-width:170px}
+table[data-feature-table="transaction-cashflow"] th:nth-child(3),table[data-feature-table="transaction-cashflow"] td:nth-child(3){width:105px;min-width:105px;max-width:105px}
+table[data-feature-table="transaction-cashflow"] th:nth-child(4),table[data-feature-table="transaction-cashflow"] td:nth-child(4){width:72px;min-width:72px;max-width:72px}
+table[data-feature-table="transaction-cashflow"] th:nth-child(5),table[data-feature-table="transaction-cashflow"] td:nth-child(5){width:128px;min-width:128px;max-width:128px}
+table[data-feature-table="transaction-cashflow"] th:nth-child(6),table[data-feature-table="transaction-cashflow"] td:nth-child(6){width:112px;min-width:112px;max-width:112px}
+table[data-feature-table="transaction-cashflow"] th:nth-child(7),table[data-feature-table="transaction-cashflow"] td:nth-child(7),table[data-feature-table="transaction-cashflow"] th:nth-child(10),table[data-feature-table="transaction-cashflow"] td:nth-child(10){width:74px;min-width:74px;max-width:74px}
+table[data-feature-table="transaction-cashflow"] th:nth-child(8),table[data-feature-table="transaction-cashflow"] td:nth-child(8),table[data-feature-table="transaction-cashflow"] th:nth-child(11),table[data-feature-table="transaction-cashflow"] td:nth-child(11){width:92px;min-width:92px;max-width:92px}
+table[data-feature-table="transaction-cashflow"] th:nth-child(9),table[data-feature-table="transaction-cashflow"] td:nth-child(9),table[data-feature-table="transaction-cashflow"] th:nth-child(12),table[data-feature-table="transaction-cashflow"] td:nth-child(12){width:112px;min-width:112px;max-width:112px}
+table[data-feature-table="transaction-cashflow"] th:nth-child(13),table[data-feature-table="transaction-cashflow"] td:nth-child(13){width:92px;min-width:92px;max-width:92px}
+table[data-feature-table="transaction-cashflow"] th:nth-child(14),table[data-feature-table="transaction-cashflow"] td:nth-child(14),table[data-feature-table="transaction-cashflow"] th:nth-child(15),table[data-feature-table="transaction-cashflow"] td:nth-child(15){width:96px;min-width:96px;max-width:96px}
+table[data-feature-table="transaction-cashflow"] th:nth-child(16),table[data-feature-table="transaction-cashflow"] td:nth-child(16){width:98px;min-width:98px;max-width:98px}
+table[data-feature-table="transaction-cashflow"] th:nth-child(-n+6),table[data-feature-table="transaction-cashflow"] td:nth-child(-n+6){position:sticky;background:#fff;z-index:2}
+table[data-feature-table="transaction-cashflow"] thead th:nth-child(-n+6){z-index:5;background:#f5f8fb}
+table[data-feature-table="transaction-cashflow"] th:nth-child(1),table[data-feature-table="transaction-cashflow"] td:nth-child(1){left:0}
+table[data-feature-table="transaction-cashflow"] th:nth-child(2),table[data-feature-table="transaction-cashflow"] td:nth-child(2){left:92px}
+table[data-feature-table="transaction-cashflow"] th:nth-child(3),table[data-feature-table="transaction-cashflow"] td:nth-child(3){left:262px}
+table[data-feature-table="transaction-cashflow"] th:nth-child(4),table[data-feature-table="transaction-cashflow"] td:nth-child(4){left:367px}
+table[data-feature-table="transaction-cashflow"] th:nth-child(5),table[data-feature-table="transaction-cashflow"] td:nth-child(5){left:439px}
+table[data-feature-table="transaction-cashflow"] th:nth-child(6),table[data-feature-table="transaction-cashflow"] td:nth-child(6){left:567px;box-shadow:5px 0 8px -7px rgba(28,46,66,.55)}
+table[data-feature-table="transaction-cashflow"] tr.selected td:nth-child(-n+6){background:#eef5fb}
+.fee-text{font-weight:400!important}
+.net-customer{font-weight:800;color:#8a5a12}.net-source{font-weight:800;color:#147257}.profit-cell strong{color:#1f67b2}
+.cashflow-fee-compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+.cashflow-fee-compare .cashflow-group{height:100%;grid-template-columns:repeat(3,minmax(0,1fr))}
+.cashflow-fee-compare .source-fee-group{grid-template-columns:repeat(4,minmax(0,1fr))}
+.cashflow-group input[name$="FeePercent"],.cashflow-group input[name$="FeeFixed"]{font-weight:400}
+.net-customer-input{font-weight:800!important;color:#8a5a12!important}.net-source-input{font-weight:800!important;color:#147257!important}
+.cashflow-settlement-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:end}
+.cashflow-settlement-grid .field{margin:0}.cashflow-settlement-grid .profit-field{grid-column:3;background:#f3f7fc;border:1px solid #d9e4ef;border-radius:12px;padding:10px 12px}.cashflow-settlement-grid .profit-field input{color:#1f67b2;font-weight:800}
+@media(max-width:900px){.cashflow-fee-compare{grid-template-columns:1fr}.cashflow-settlement-grid{grid-template-columns:1fr 1fr}.cashflow-settlement-grid .profit-field{grid-column:2}}
+@media(max-width:620px){.cashflow-settlement-grid{grid-template-columns:1fr}.cashflow-settlement-grid .profit-field{grid-column:1}.cashflow-fee-compare .cashflow-group,.cashflow-fee-compare .source-fee-group{grid-template-columns:1fr}}
