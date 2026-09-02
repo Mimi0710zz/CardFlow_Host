@@ -286,3 +286,34 @@ table[data-feature-table="transaction-cashflow"] tr.selected td:nth-child(-n+6){
 .cashflow-profit-spacer{min-height:1px}.cashflow-profit-row .profit-field{grid-column:2;margin:0;background:#f3f7fc;border:1px solid #d9e4ef;border-radius:12px;padding:10px 12px}.cashflow-profit-row .profit-field input{color:#1f67b2;font-weight:800}
 @media(max-width:900px){.cashflow-fee-compare{grid-template-columns:1fr}.cashflow-settlement-grid,.cashflow-profit-row{grid-template-columns:1fr}.cashflow-profit-row .profit-field{grid-column:1}.cashflow-profit-spacer{display:none}}
 @media(max-width:620px){.cashflow-fee-compare .cashflow-group,.cashflow-fee-compare .source-fee-group{grid-template-columns:1fr}}
+
+/* Dòng tiền: căn lề theo kiểu dữ liệu */
+table[data-feature-table="transaction-cashflow"] td:nth-child(1),
+table[data-feature-table="transaction-cashflow"] td:nth-child(2),
+table[data-feature-table="transaction-cashflow"] td:nth-child(3),
+table[data-feature-table="transaction-cashflow"] td:nth-child(5),
+table[data-feature-table="transaction-cashflow"] td:nth-child(14),
+table[data-feature-table="transaction-cashflow"] td:nth-child(15){text-align:left}
+
+table[data-feature-table="transaction-cashflow"] td:nth-child(4),
+table[data-feature-table="transaction-cashflow"] td:nth-child(6),
+table[data-feature-table="transaction-cashflow"] td:nth-child(7),
+table[data-feature-table="transaction-cashflow"] td:nth-child(8),
+table[data-feature-table="transaction-cashflow"] td:nth-child(9),
+table[data-feature-table="transaction-cashflow"] td:nth-child(10),
+table[data-feature-table="transaction-cashflow"] td:nth-child(11),
+table[data-feature-table="transaction-cashflow"] td:nth-child(12),
+table[data-feature-table="transaction-cashflow"] td:nth-child(16){text-align:right}
+
+table[data-feature-table="transaction-cashflow"] td:nth-child(13){text-align:center}
+
+/* Form Tùy chỉnh Dòng tiền: số / % / tiền căn phải, text giữ trái */
+.cashflow-group input[name="orderFeePercent"],
+.cashflow-group input[name="orderFeeFixed"],
+.cashflow-group input[name="customerNetAmount"],
+.cashflow-group input[name="sourceFeePercent"],
+.cashflow-group input[name="sourceFeeFixed"],
+.cashflow-group input[name="sourceNetAmount"],
+.cashflow-profit-row input[name="profit"]{text-align:right}
+
+.cashflow-group select[name="sourceName"]{text-align:center;text-align-last:center}
