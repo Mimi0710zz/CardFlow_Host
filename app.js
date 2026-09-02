@@ -7,7 +7,7 @@ import {formatDate,formatDay,toStorageDate} from "./services/date.js?v=20260830-
 import {compareText,sortByLabel,compareCards,compareCardId,compareCustomerCardLinks,buildSortedCustomerCardRows,compareCustomers} from "./services/sorting.js?v=20260830-customer-detail-sortv9";
 import {CARD_BRANDS,CARD_RANKS,OWNERSHIP_TYPES,normalizeCardBrand,normalizeCardRank,normalizeOwnershipType} from "./services/card-types.js?v=20260831-cardranksv8";
 import {calculateEffectiveCreditLimit} from "./services/credit-limit.js?v=20260830-effective-limitv7";
-import {renderCashbackFeatures,renderCashbackDashboard} from "./services/cashback-feature-ui.js?v=20260903-cashflow-freeze-layout-v1";
+import {renderCashbackFeatures,renderCashbackDashboard} from "./services/cashback-feature-ui.js?v=20260903-clear-row-selection-v1";
 import {applyHostBootstrapData} from "./services/host-bootstrap.js?v=20260902-transaction-fees-v1";
 import {customerCardCycleConfig} from "./services/cashback-cycle.js?v=20260901-statement-day-owner-v1";
 import {currentHostGuideItems,currentAboutIntroduction} from "./services/about-guide-content.js?v=20260901-about-guide-latest-v1";
@@ -510,7 +510,14 @@ $('form',$('#modal')).onsubmit=submitForm;
 $$('[data-close]').forEach(x=>x.onclick=closeModal);
 $('[data-close-detail]').onclick=closeDetail;
 $('#detailModal').addEventListener('click',event=>{if(event.target===event.currentTarget)closeDetail();});
-document.addEventListener('click',e=>{if(!e.target.closest('#contextMenu'))$('#contextMenu').hidden=true;});
+function clearSelectedTableRows(){
+  $$('table tbody tr.selected').forEach(row=>row.classList.remove('selected'));
+  document.dispatchEvent(new CustomEvent('cardflow:table-selection-cleared'));
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#contextMenu'))$('#contextMenu').hidden=true;
+  if(!e.target.closest('table'))clearSelectedTableRows();
+});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')setSidebarOpen(false);});
 $('#excelFile').onchange=e=>{importExcel(e.target.files[0]).catch(err=>toast(`Không thể đọc Excel: ${err.message}`));e.target.value='';};
 $('#gateConnectDrive').onclick=()=>connectGoogleDriveFromUi();
