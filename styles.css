@@ -279,7 +279,10 @@ table[data-feature-table="transaction-cashflow"] tr.selected td:nth-child(-n+6){
 .cashflow-fee-compare .source-fee-group{grid-template-columns:repeat(4,minmax(0,1fr))}
 .cashflow-group input[name$="FeePercent"],.cashflow-group input[name$="FeeFixed"]{font-weight:400}
 .net-customer-input{font-weight:800!important;color:#8a5a12!important}.net-source-input{font-weight:800!important;color:#147257!important}
-.cashflow-settlement-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:end}
-.cashflow-settlement-grid .field{margin:0}.cashflow-settlement-grid .profit-field{grid-column:3;background:#f3f7fc;border:1px solid #d9e4ef;border-radius:12px;padding:10px 12px}.cashflow-settlement-grid .profit-field input{color:#1f67b2;font-weight:800}
-@media(max-width:900px){.cashflow-fee-compare{grid-template-columns:1fr}.cashflow-settlement-grid{grid-template-columns:1fr 1fr}.cashflow-settlement-grid .profit-field{grid-column:2}}
-@media(max-width:620px){.cashflow-settlement-grid{grid-template-columns:1fr}.cashflow-settlement-grid .profit-field{grid-column:1}.cashflow-fee-compare .cashflow-group,.cashflow-fee-compare .source-fee-group{grid-template-columns:1fr}}
+.cashflow-settlement-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:stretch}
+.cashflow-status-card{min-width:0;background:#f7f9fc;border:1px solid #d9e4ef;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.cashflow-status-card>strong{font-size:.95rem;color:#25384d}.cashflow-status-card .field{margin:0;max-width:320px}.cashflow-status-card select{width:100%}
+.cashflow-profit-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:stretch}
+.cashflow-profit-spacer{min-height:1px}.cashflow-profit-row .profit-field{grid-column:2;margin:0;background:#f3f7fc;border:1px solid #d9e4ef;border-radius:12px;padding:10px 12px}.cashflow-profit-row .profit-field input{color:#1f67b2;font-weight:800}
+@media(max-width:900px){.cashflow-fee-compare{grid-template-columns:1fr}.cashflow-settlement-grid,.cashflow-profit-row{grid-template-columns:1fr}.cashflow-profit-row .profit-field{grid-column:1}.cashflow-profit-spacer{display:none}}
+@media(max-width:620px){.cashflow-fee-compare .cashflow-group,.cashflow-fee-compare .source-fee-group{grid-template-columns:1fr}}
