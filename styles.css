@@ -338,30 +338,36 @@ table[data-feature-table="transaction-cashflow"] td:nth-child(13){text-align:cen
   .feature-modal.cashflow-editor-modal .cashflow-profit-spacer{display:none}
 }
 
-/* Dòng tiền v8.10: compact fee fields, widths follow content instead of equal columns */
+/* Dòng tiền v8.11: compact fee fields contained inside two equal fee cards */
 .feature-modal.cashflow-editor-modal .modal-card{width:min(1080px,96vw)}
+.feature-modal.cashflow-editor-modal .cashflow-fee-compare{
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:16px;
+}
+.feature-modal.cashflow-editor-modal .cashflow-fee-compare>*{
+  width:100%;
+  min-width:0;
+  box-sizing:border-box;
+}
+.feature-modal.cashflow-editor-modal .cashflow-group{
+  min-width:0;
+  padding-inline:12px;
+}
 .feature-modal.cashflow-editor-modal .order-fee-group{
-  grid-template-columns:88px 122px minmax(150px,1fr);
+  grid-template-columns:minmax(56px,72px) minmax(88px,118px) minmax(130px,1fr);
 }
 .feature-modal.cashflow-editor-modal .source-fee-group{
-  grid-template-columns:88px 122px minmax(150px,1fr) 118px;
+  grid-template-columns:minmax(56px,72px) minmax(88px,118px) minmax(120px,1fr) minmax(82px,105px);
 }
-.feature-modal.cashflow-editor-modal .cashflow-group input[name="orderFeePercent"],
-.feature-modal.cashflow-editor-modal .cashflow-group input[name="sourceFeePercent"]{
+.feature-modal.cashflow-editor-modal .cashflow-group .field,
+.feature-modal.cashflow-editor-modal .cashflow-group input,
+.feature-modal.cashflow-editor-modal .cashflow-group select{
+  width:100%;
   min-width:0;
-}
-.feature-modal.cashflow-editor-modal .cashflow-group input[name="orderFeeFixed"],
-.feature-modal.cashflow-editor-modal .cashflow-group input[name="sourceFeeFixed"]{
-  min-width:0;
+  box-sizing:border-box;
 }
 @media(max-width:900px){
   .feature-modal.cashflow-editor-modal .modal-card{width:min(920px,96vw)}
-  .feature-modal.cashflow-editor-modal .order-fee-group{
-    grid-template-columns:78px 110px minmax(135px,1fr);
-  }
-  .feature-modal.cashflow-editor-modal .source-fee-group{
-    grid-template-columns:78px 110px minmax(135px,1fr) 105px;
-  }
 }
 @media(max-width:700px){
   .feature-modal.cashflow-editor-modal .order-fee-group,
