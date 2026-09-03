@@ -337,3 +337,35 @@ table[data-feature-table="transaction-cashflow"] td:nth-child(13){text-align:cen
   .feature-modal.cashflow-editor-modal .cashflow-profit-row .profit-field{grid-column:1}
   .feature-modal.cashflow-editor-modal .cashflow-profit-spacer{display:none}
 }
+
+/* Dòng tiền v8.10: compact fee fields, widths follow content instead of equal columns */
+.feature-modal.cashflow-editor-modal .modal-card{width:min(1080px,96vw)}
+.feature-modal.cashflow-editor-modal .order-fee-group{
+  grid-template-columns:88px 122px minmax(150px,1fr);
+}
+.feature-modal.cashflow-editor-modal .source-fee-group{
+  grid-template-columns:88px 122px minmax(150px,1fr) 118px;
+}
+.feature-modal.cashflow-editor-modal .cashflow-group input[name="orderFeePercent"],
+.feature-modal.cashflow-editor-modal .cashflow-group input[name="sourceFeePercent"]{
+  min-width:0;
+}
+.feature-modal.cashflow-editor-modal .cashflow-group input[name="orderFeeFixed"],
+.feature-modal.cashflow-editor-modal .cashflow-group input[name="sourceFeeFixed"]{
+  min-width:0;
+}
+@media(max-width:900px){
+  .feature-modal.cashflow-editor-modal .modal-card{width:min(920px,96vw)}
+  .feature-modal.cashflow-editor-modal .order-fee-group{
+    grid-template-columns:78px 110px minmax(135px,1fr);
+  }
+  .feature-modal.cashflow-editor-modal .source-fee-group{
+    grid-template-columns:78px 110px minmax(135px,1fr) 105px;
+  }
+}
+@media(max-width:700px){
+  .feature-modal.cashflow-editor-modal .order-fee-group,
+  .feature-modal.cashflow-editor-modal .source-fee-group{
+    grid-template-columns:1fr;
+  }
+}
