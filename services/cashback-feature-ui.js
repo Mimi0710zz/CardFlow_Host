@@ -6,7 +6,7 @@ import {buildCoordinationRows,recommendOrders} from "./order-coordination.js?v=2
 import {renderCoordinationWorkspace} from "./coordination-ui.js?v=20260901-statement-day-owner-v1";
 import {getProgramPriority,getMccSelectionMode,isMccCategoryEligible,normalizeCashbackConditions} from "./cashback-program.js?v=20260905-cashback-conditions-v1";
 import {applyExclusiveProgramSelection,exclusiveProgramOptions,selectedExclusiveProgramIds,validateExclusiveProgram} from "./cashback-exclusive.js?v=20260901-exclusive-multiselect-v1";
-import {openCashbackProgramEditor} from "./cashback-program-editor.js?v=20260905-client-parity-v1";
+import {openCashbackProgramEditor} from "./cashback-program-editor.js?v=20260905-mcc-outside-click-v1";
 
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const modeLabel=v=>v==="statement"?"Theo sao kê":"Theo tháng";
