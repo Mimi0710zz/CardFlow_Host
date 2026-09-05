@@ -32,7 +32,8 @@
 - Tìm ngân hàng/Card ID/phôi/chương trình; lọc ngân hàng, Card ID, chương trình, trạng thái, `Chỉ hiện cần xử lý`.
 - Dropdown khách hàng có tìm tên, chọn tất cả, bỏ chọn tất cả, chọn nhiều; tên đầy đủ vẫn giữ nguyên trong dữ liệu. `formatMatrixCustomerName` rút gọn các từ trước từ cuối, ví dụ `N.Q.Minh`.
 - Sắp xếp theo ngân hàng → Card ID → chương trình; khách hàng theo tên đầy đủ với locale `vi` và ID phá hòa để thứ tự ổn định.
-- Desktop/tablet ngang: đúng bốn cột cố định Ngân hàng / Card ID / Phôi / Chương trình hoàn tiền; cột khách khoảng 82px; cuộn riêng bảng và header sticky. Các chương trình cùng thẻ được phân nhóm bằng đường phân cách.
+- Desktop/tablet ngang: bốn cột cố định Ngân hàng 60px / Card ID 100px / Phôi 54px / Chương trình hoàn tiền 140px; cột khách cố định 56px. Tổng vùng cố định 354px. Cuộn riêng bảng và header sticky; các chương trình cùng thẻ được phân nhóm bằng đường phân cách.
+- Tối ưu mật độ: ưu tiên mã ngân hàng hiện có, phôi viết gọn VISA/MASTER/JCB/AMEX; tên khách và chương trình giới hạn hai dòng, có tooltip đầy đủ. Ô xanh dùng `0`, tiến độ dùng định dạng `1.5tr/4tr`, cho phép xuống dòng tại dấu `/`; không có đơn vị đồng trong ô. Giữ nguyên modal và logic nghiệp vụ. Đã kiểm tra Chrome với 64 cột khách trên desktop và tablet ngang.
 - Điện thoại và tablet dọc đến 1024px: danh sách chương trình có thể thu/mở và các khách hàng xếp dọc, không ép bảng lớn vào màn hình nhỏ.
 
 ## Những giới hạn/quy tắc cần biết
