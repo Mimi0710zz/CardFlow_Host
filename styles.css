@@ -401,3 +401,6 @@ table[data-feature-table="transaction-cashflow"] td:nth-child(13){text-align:cen
 /* Chương trình hoàn tiền: giữ Chi tổng thành một nhóm điều khiển liền mạch. */
 .cashback-total-row{display:flex;align-items:center;justify-content:flex-start;gap:14px}.cashback-total-row .money-input{flex:0 0 250px;width:250px;max-width:100%}
 @media(max-width:767px){.cashback-total-row{flex-wrap:wrap;gap:8px 12px}.cashback-total-row .money-input{flex-basis:min(250px,100%)}}
+
+/* Điều phối đơn: chỉ header cột khách hàng dùng xanh chủ đạo. */
+.matrix-table thead th:nth-child(n+4){color:var(--nav2)}

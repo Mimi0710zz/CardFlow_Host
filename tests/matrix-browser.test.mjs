@@ -39,6 +39,8 @@ test('matrix browser: frozen columns, responsive, filters and green/yellow/red w
   assert.equal(await evaluate('window.ready'),true,errors.join('\n'));
   assert.equal(await evaluate("document.querySelectorAll('[data-coord-tab],.coord-recommend-open').length"),0);
   assert.deepEqual(await evaluate("[...document.querySelectorAll('.matrix-table th')].slice(0,3).map(x=>x.textContent.replace(/Kéo để đổi độ rộng.*/,''))"),['Card ID','Phôi','Chương trình hoàn tiền']);
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('.matrix-table th:nth-child(4)')).color"),'rgb(31, 78, 120)');
+  assert.notEqual(await evaluate("getComputedStyle(document.querySelector('.matrix-table th:nth-child(3)')).color"),'rgb(31, 78, 120)');
   const geometry=await evaluate(`(()=>{const wrap=document.querySelector('.matrix-scroll'),cells=[...document.querySelectorAll('.matrix-table tbody td')].slice(0,3),before=cells.map(x=>x.getBoundingClientRect().x);wrap.scrollLeft=400;return {before,after:cells.map(x=>x.getBoundingClientRect().x),width:document.querySelector('.matrix-table th:nth-child(4)').getBoundingClientRect().width};})()`);
   assert.deepEqual(geometry.before,geometry.after);assert.ok(geometry.width>=44&&geometry.width<=60);
   assert.deepEqual(await evaluate("[...document.querySelectorAll('.matrix-table th')].slice(0,4).map(x=>Math.round(x.getBoundingClientRect().width))"),[88,54,132,56]);
