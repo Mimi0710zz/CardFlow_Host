@@ -542,3 +542,18 @@ table[data-feature-table="transaction-cashflow"] td:nth-child(13){text-align:cen
   min-width:var(--matrix-customer-width,56px);
   max-width:var(--matrix-customer-width,56px);
 }
+
+/* 2026-09-07: Independent matrix info-column resize; customer columns locked */
+.matrix-table col.matrix-bank-coldef{width:var(--matrix-bank-width)}
+.matrix-table col.matrix-card-coldef{width:var(--matrix-card-width)}
+.matrix-table col.matrix-brand-coldef{width:var(--matrix-brand-width)}
+.matrix-table col.matrix-program-coldef{width:var(--matrix-program-width)}
+.matrix-table col.matrix-customer-coldef{width:56px}
+.matrix-table .matrix-customer-head,
+.matrix-table .matrix-customer-col{
+  width:56px!important;
+  min-width:56px!important;
+  max-width:56px!important;
+}
+.matrix-table .matrix-customer-head{position:sticky;top:0;text-align:center}
+.matrix-table .matrix-customer-head .matrix-resize-handle{display:none!important}
