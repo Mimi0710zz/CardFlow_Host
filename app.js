@@ -211,7 +211,14 @@ function bindCustomerCardEditor(root){
     refreshChoices();
   };
 }
-function entityTable(headers,rows,entity,emptyMessage="Không có dữ liệu phù hợp.",hasFilters=false){return rows.length?`<div class="table-wrap"><table class="mobile" data-entity="${entity}"><thead><tr>${headers.map((h,i)=>`<th data-sort="${i}">${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`:`<div class="empty">${esc(emptyMessage)}${hasFilters?'<br><button data-clear-filter>Xóa tìm kiếm và bộ lọc</button>':""}</div>`;}
+function entityTable(headers,rows,entity,emptyMessage="Không có dữ liệu phù hợp.",hasFilters=false){
+  const headerHtml=headers.map((header,i)=>{
+    if(typeof header==="string")return `<th data-sort="${i}">${header}</th>`;
+    const attrs=Object.entries(header.attrs||{}).map(([key,value])=>` ${key}="${esc(value)}"`).join("");
+    return `<th${attrs}>${header.label}</th>`;
+  }).join("");
+  return rows.length?`<div class="table-wrap"><table class="mobile" data-entity="${entity}"><thead><tr>${headerHtml}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`:`<div class="empty">${esc(emptyMessage)}${hasFilters?'<br><button data-clear-filter>Xóa tìm kiếm và bộ lọc</button>':""}</div>`;
+}
 function cell(label,value){return `<td data-label="${label}">${value}</td>`;}
 let insuranceSearch="";
 function renderInsuranceLinks(){const root=$("#view-insurance-links");if(!root)return;const query=normalize(insuranceSearch),rows=INSURANCE_LINKS.filter(item=>!query||normalize(`${item.name} ${item.url}`).includes(query));root.innerHTML=`<div class="panel"><h2>Link Bảo Hiểm</h2><div class="insurance-toolbar"><input data-insurance-search placeholder="Tìm bảo hiểm hoặc link..." value="${esc(insuranceSearch)}"></div>${entityTable(["STT","Bảo hiểm","Link thanh toán","Mở link"],rows.map(item=>`<tr><td>${item.index}</td><td>${esc(item.name)}</td><td><span class="insurance-url" title="${esc(item.url)}">${esc(item.url)}</span><button type="button" class="icon-btn insurance-copy" data-copy-insurance="${esc(item.url)}" title="Sao chép link" aria-label="Sao chép link">${icon("copy")}</button></td><td><a class="icon-btn" href="${esc(item.url)}" target="_blank" rel="noopener noreferrer" title="Mở link" aria-label="Mở link">${icon("external")}</a></td></tr>`),"insurance-links","Chưa có link.")}</div>`;root.querySelector("[data-insurance-search]")?.addEventListener("input",e=>{insuranceSearch=e.target.value;renderInsuranceLinks();});root.querySelectorAll("[data-copy-insurance]").forEach(button=>button.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(button.dataset.copyInsurance);toast("Đã sao chép link");}catch{toast("Không thể sao chép link");}}));}
@@ -247,9 +254,53 @@ function responsiveStatusLabel(status){return status==="active"?"Đang hoạt đ
 function cardBankName(card){
   return bank(card?.bankId)?.name||card?.bank||"—";
 }
+const cardTableColumns=[
+  {key:"bank",label:"Ngân hàng",value:card=>cardBankName(card)},
+  {key:"cardId",label:"Card ID",value:card=>card.cardId||""},
+  {key:"ownershipType",label:"Loại thẻ",value:card=>ownershipTypeLabel(card.ownershipType)},
+  {key:"cardName",label:"Tên thẻ",value:card=>card.cardName||""},
+  {key:"tier",label:"Hạng thẻ",value:card=>card.cardRank||""},
+  {key:"network",label:"Phôi",value:card=>card.cardBrand||card.network||""},
+  {key:"cardForm",label:"Hình thức thẻ",value:card=>card.cardForm||""},
+  {key:"rewardMethod",label:"Hình thức hoàn",value:card=>cashbackCycleModeLabel(card.cashbackCycleMode)},
+  {key:"ownerCount",label:"Số khách sở hữu",value:card=>linksForProduct(card.id).length,type:"number"},
+  {key:"notes",label:"Ghi chú",value:card=>card.notes||""}
+];
+const cardSortColumn=key=>cardTableColumns.find(column=>column.key===key)||cardTableColumns[0];
+function compareCardSortValue(left,right,column,direction="asc"){
+  const multiplier=direction==="desc"?-1:1;
+  if(column.type==="number")return multiplier*((Number(column.value(left))||0)-(Number(column.value(right))||0));
+  return multiplier*compareText(String(column.value(left)||""),String(column.value(right)||""));
+}
+function compareCardsWithinBank(left,right,sort){
+  const column=cardSortColumn(sort?.key);
+  const direction=sort?.direction||"asc";
+  const primary=column.key==="bank"?0:compareCardSortValue(left,right,column,direction);
+  return primary||compareCardId(left,right)||compareText(left.cardName,right.cardName);
+}
+function sortVisibleCardRows(items){
+  const sort=sorts.cards||{key:"bank",direction:"asc"};
+  const bankDirection=sort.key==="bank"?sort.direction:"asc";
+  const groups=new Map();
+  items.forEach(card=>{
+    const key=card.bankId||`name:${cardBankName(card)}`;
+    if(!groups.has(key))groups.set(key,{key,bankName:cardBankName(card),rows:[]});
+    groups.get(key).rows.push(card);
+  });
+  return [...groups.values()]
+    .sort((left,right)=>(bankDirection==="desc"?-1:1)*compareText(left.bankName,right.bankName)||compareText(left.key,right.key))
+    .flatMap(group=>group.rows.sort((left,right)=>compareCardsWithinBank(left,right,sort)));
+}
+function cardTableHeaders(){
+  const active=sorts.cards||{key:"bank",direction:"asc"};
+  return cardTableColumns.map(column=>({
+    label:`${esc(column.label)}${active.key===column.key?` <span aria-hidden="true">${active.direction==="asc"?"▲":"▼"}</span>`:""}`,
+    attrs:{"data-card-sort":column.key,"data-column-key":column.key,"aria-sort":active.key===column.key?(active.direction==="asc"?"ascending":"descending"):"none"}
+  }));
+}
 function renderCards(){
   const f=filters.cards||{},q=normalize(f.q);
-  const items=state.cardProducts.filter(p=>{const links=linksForProduct(p.id),owners=links.map(x=>customer(x.customerId)).filter(Boolean),hay=[p.cardId,cardBankName(p),p.cardName,p.cardRank,p.ownershipType,p.cardBrand,p.network,p.cardForm,...owners.map(x=>x.fullName)].map(normalize).join(" ");return (!q||hay.includes(q))&&(!f.bank||p.bankId===f.bank)&&(!f.rank||p.cardRank===f.rank)&&(!f.ownership||p.ownershipType===f.ownership)&&(!f.brand||(p.cardBrand||p.network)===f.brand)&&(!f.form||p.cardForm===f.form);}).sort((left,right)=>compareText(cardBankName(left),cardBankName(right))||compareCardId(left,right)||compareText(left.cardName,right.cardName));
+  const items=sortVisibleCardRows(state.cardProducts.filter(p=>{const links=linksForProduct(p.id),owners=links.map(x=>customer(x.customerId)).filter(Boolean),hay=[p.cardId,cardBankName(p),p.cardName,p.cardRank,p.ownershipType,p.cardBrand,p.network,p.cardForm,...owners.map(x=>x.fullName)].map(normalize).join(" ");return (!q||hay.includes(q))&&(!f.bank||p.bankId===f.bank)&&(!f.rank||p.cardRank===f.rank)&&(!f.ownership||p.ownershipType===f.ownership)&&(!f.brand||(p.cardBrand||p.network)===f.brand)&&(!f.form||p.cardForm===f.form);}));
   const mergeBanks=window.matchMedia?.("(min-width:768px)")?.matches!==false;
   const bankSpanAt=index=>{
     if(!mergeBanks)return 1;
@@ -261,7 +312,7 @@ function renderCards(){
   };
   const rows=items.map((p,index)=>{const links=linksForProduct(p.id),span=bankSpanAt(index);return `<tr data-id="${p.id}">${span?`<td data-label="Ngân hàng" rowspan="${span}" class="cashback-bank-cell">${esc(cardBankName(p))}</td>`:""}${cell("Card ID",`<strong>${esc(p.cardId)}</strong>`)}${cell("Loại thẻ",ownershipTypeLabel(p.ownershipType))}${cell("Tên thẻ",esc(p.cardName))}${cell("Hạng thẻ",esc(p.cardRank))}${cell("Phôi",esc(p.cardBrand||p.network||"—"))}${cell("Hình thức thẻ",esc(p.cardForm||"—"))}${cell("Hình thức hoàn",esc(cashbackCycleModeLabel(p.cashbackCycleMode)))}${cell("Số khách sở hữu",links.length)}${cell("Ghi chú",esc(p.notes||"—"))}</tr>`;});
   const filterFields=filterSelect("cards.bank","Ngân hàng",state.banks,f.bank,x=>x.name)+plainFilter("cards.rank","Hạng thẻ",CARD_RANKS.map(x=>`${x}|${x}`),f.rank,true)+plainFilter("cards.ownership","Loại thẻ",OWNERSHIP_TYPES.map(x=>`${x}|${ownershipTypeLabel(x)}`),f.ownership)+plainFilter("cards.brand","Phôi",cardBrandValues().map(x=>`${x}|${x}`),f.brand)+plainFilter("cards.form","Hình thức thẻ",CARD_FORMS.map(x=>`${x}|${x}`),f.form);
-  $("#view-cards").innerHTML=`<div class="panel"><div class="section-title"><h2>Thẻ ngân hàng</h2></div>${compactEntityToolbar("cards","product","Tìm Card ID, ngân hàng, hạng thẻ...",f,filterFields)}${entityTable(["Ngân hàng","Card ID","Loại thẻ","Tên thẻ","Hạng thẻ","Phôi","Hình thức thẻ","Hình thức hoàn","Số khách sở hữu","Ghi chú"],rows,"product",state.cardProducts.length?"Không có thẻ ngân hàng phù hợp.":"Chưa có thẻ ngân hàng.",Boolean(Object.values(f).some(Boolean)))}</div>`;
+  $("#view-cards").innerHTML=`<div class="panel"><div class="section-title"><h2>Thẻ ngân hàng</h2></div>${compactEntityToolbar("cards","product","Tìm Card ID, ngân hàng, hạng thẻ...",f,filterFields)}${entityTable(cardTableHeaders(),rows,"product",state.cardProducts.length?"Không có thẻ ngân hàng phù hợp.":"Chưa có thẻ ngân hàng.",Boolean(Object.values(f).some(Boolean)))}</div>`;
 }
 
 
@@ -278,6 +329,8 @@ function syncCompactPanelFromApplied(panel){const group=panel?.dataset.compactPa
 function closeCompactFilterPanelWithoutApply(panel,trigger){if(!panel)return;const group=panel.dataset.compactPanel;syncCompactPanelFromApplied(panel);panel.hidden=true;(trigger||$(`[data-compact-trigger="${group}"]`))?.classList.toggle("active",compactFilterCount(group)>0);removeCompactFilterOutsideListener();}
 function closeAllCompactFilterPanels(){$$("[data-compact-panel]").forEach(panel=>closeCompactFilterPanelWithoutApply(panel));}
 function registerCompactFilterOutsideClose(panel,trigger){removeCompactFilterOutsideListener();compactFilterOutsideHandler=event=>{const path=event.composedPath?.()||[];if(path.includes(panel)||path.includes(trigger)||panel.contains(event.target)||trigger.contains(event.target))return;closeCompactFilterPanelWithoutApply(panel,trigger);};setTimeout(()=>document.addEventListener("pointerdown",compactFilterOutsideHandler,true),0);}
+function isTableResizeClick(event,th){const rect=th.getBoundingClientRect(),edge=10;return event.target.closest('[data-table-resize-handle]')||event.clientX-rect.left<=edge||rect.right-event.clientX<=edge||Date.now()<(window.__tableResizeSuppressClickUntil||0);}
+function watchTableResizePointer(th){th.onpointerdown=event=>{if(isTableResizeClick(event,th))window.__tableResizeSuppressClickUntil=Date.now()+800;};}
 function filterSelect(path,label,items,value,toLabel){return `<select data-filter="${path}"><option value="">${label}: Tất cả</option>${sortByLabel(items,toLabel).map(x=>`<option value="${x.id}" ${x.id===value?"selected":""}>${esc(toLabel(x))}</option>`).join("")}</select>`;}
 function plainFilter(path,label,items,value,preserveOrder=false){const options=items.map(raw=>{const [v,l]=String(raw).split("|");return {v,l};});if(!preserveOrder)options.sort((a,b)=>compareText(a.l,b.l));return `<select data-filter="${path}"><option value="">${label}: Tất cả</option>${options.map(({v,l})=>`<option value="${esc(v)}" ${v===value?"selected":""}>${esc(l)}</option>`).join("")}</select>`;}
 
@@ -320,13 +373,15 @@ function bindTables(){
   $$('[data-compact-clear]').forEach(button=>button.onclick=()=>{const group=button.dataset.compactClear,q=filters[group]?.q||"";filters[group]={q};removeCompactFilterOutsideListener();group==="customers"?renderCustomers():renderCards();bindTables();});
   $$('[data-clear-filter]').forEach(el=>el.onclick=()=>{filters[currentView]={};render();});
   $$('table[data-entity] tr[data-id]').forEach(row=>{if(row.closest("table")?.dataset.featureTable)return;const selectRow=()=>{const table=row.closest("table");$$('tr.selected',table).forEach(x=>x.classList.remove("selected"));row.classList.add("selected");};row.onclick=event=>{if(event.target.closest('[data-responsive-toggle]'))return;selectRow();};row.ondblclick=()=>openDetail(row.closest("table").dataset.entity,row.dataset.id);row.oncontextmenu=e=>{e.preventDefault();selectRow();openContext(e,row.closest("table").dataset.entity,row.dataset.id);};});
-  $$('th[data-sort]').forEach(th=>th.onclick=()=>{const table=th.closest("table"),body=$("tbody",table),index=Number(th.dataset.sort),direction=th.dataset.direction==="asc"?"desc":"asc";$$('th[data-sort]',table).forEach(x=>{delete x.dataset.direction;});th.dataset.direction=direction;const rows=$$('tr',body).sort((a,b)=>{const left=$("td:nth-child("+(index+1)+")",a)?.innerText.trim()||"",right=$("td:nth-child("+(index+1)+")",b)?.innerText.trim()||"";const ln=Number(left.replace(/\D/g,"")),rn=Number(right.replace(/\D/g,"")),result=left&&right&&Number.isFinite(ln)&&Number.isFinite(rn)&&/\d/.test(left)&&/\d/.test(right)?ln-rn:left.localeCompare(right,"vi",{sensitivity:"base"});return direction==="asc"?result:-result;});rows.forEach(row=>body.append(row));});
+  $$('th[data-card-sort]').forEach(th=>{watchTableResizePointer(th);th.onclick=event=>{if(isTableResizeClick(event,th))return;const key=th.dataset.cardSort,current=sorts.cards||{key:"bank",direction:"asc"},direction=current.key===key&&current.direction==="asc"?"desc":"asc";sorts.cards={key,direction};renderCards();bindTables();attachResizableTables();};});
+  $$('th[data-sort]').forEach(th=>{watchTableResizePointer(th);th.onclick=event=>{if(isTableResizeClick(event,th))return;const table=th.closest("table"),body=$("tbody",table),index=Number(th.dataset.sort),direction=th.dataset.direction==="asc"?"desc":"asc";$$('th[data-sort]',table).forEach(x=>{delete x.dataset.direction;});th.dataset.direction=direction;const rows=$$('tr',body).sort((a,b)=>{const left=$("td:nth-child("+(index+1)+")",a)?.innerText.trim()||"",right=$("td:nth-child("+(index+1)+")",b)?.innerText.trim()||"";const ln=Number(left.replace(/\D/g,"")),rn=Number(right.replace(/\D/g,"")),result=left&&right&&Number.isFinite(ln)&&Number.isFinite(rn)&&/\d/.test(left)&&/\d/.test(right)?ln-rn:left.localeCompare(right,"vi",{sensitivity:"base"});return direction==="asc"?result:-result;});rows.forEach(row=>body.append(row));};});
   $$('[data-add]').forEach(x=>x.onclick=()=>openForm(x.dataset.add));$$('[data-edit-selected]').forEach(x=>x.onclick=()=>selectedAction(x.dataset.editSelected,"edit"));$$('[data-delete-selected]').forEach(x=>x.onclick=()=>selectedAction(x.dataset.deleteSelected,"delete"));
   $('[data-card-cycle-guide]')?.addEventListener("click",openCardCycleGuide);
   $$('[data-responsive-customer-detail]').forEach(button=>button.onclick=event=>{event.stopPropagation();openCustomerDetail(button.dataset.responsiveCustomerDetail);});
   $$('[data-responsive-customer-edit]').forEach(button=>button.onclick=event=>{event.stopPropagation();openForm("customer",button.dataset.responsiveCustomerEdit);});
   $$('[data-responsive-customer-delete]').forEach(button=>button.onclick=event=>{event.stopPropagation();removeEntity("customer",button.dataset.responsiveCustomerDelete);});
   $('[data-download-template]')?.addEventListener("click",downloadTemplate);$('[data-import-excel]')?.addEventListener("click",()=>$("#excelFile").click());$('[data-export-json]')?.addEventListener("click",exportJson);
+  attachResizableTables();
 }
 function bindHelpTabs(){$$('[data-help-tab]').forEach(button=>button.onclick=()=>{$$('[data-help-tab]').forEach(item=>{const selected=item===button;item.classList.toggle("active",selected);item.setAttribute("aria-selected",String(selected));});$$('[data-help-panel]').forEach(panel=>panel.hidden=panel.dataset.helpPanel!==button.dataset.helpTab);sessionStorage.setItem("cardflow-host-about-tab",button.dataset.helpTab);});}
 function responsiveRowTitle(entity,row){
