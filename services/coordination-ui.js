@@ -9,7 +9,7 @@ const normalize=value=>String(value??"").normalize("NFD").replace(/[\u0300-\u036
 const money=value=>formatMoney(value,true);
 const STATUS={urgent:"Cần đánh gấp",needed:"Cần đánh",near:"Gần đạt",completed:"Đã chốt",locked:"Đã vô hiệu",tie:"Cần xác nhận",configuration:"Thiếu cấu hình"};
 export const COORDINATION_THRESHOLDS={urgentDays:3,nearPercent:80};
-export const coordinationUi={activeTab:"reminders",selectedCardProductId:"",selectedProgramId:"",customerSearch:"",statusFilter:"",sortMode:"priority",focusCustomerCardId:""};
+export const coordinationUi={activeTab:"matrix",selectedCardProductId:"",selectedProgramId:"",customerSearch:"",statusFilter:"",sortMode:"priority",focusCustomerCardId:""};
 
 export function coordinationDisplayStatus(row){
  if(!row?.progress?.valid||row.progress.status==="configuration-incomplete")return "configuration";
@@ -85,18 +85,9 @@ function focusRow(){if(!coordinationUi.focusCustomerCardId)return;requestAnimati
 let matrixActions={},matrixGetState=null,matrixTimer;
 export function renderCoordinationWorkspace(state,actions=matrixActions,getState=matrixGetState){
  matrixActions=actions;matrixGetState=getState;clearTimeout(matrixTimer);
- const root=document.querySelector("#view-coordination");if(!root)return;root.innerHTML=`<div class="coord-workspace"><div class="coord-head"><div class="coord-tabs" role="tablist"><button type="button" data-coord-tab="reminders" class="${coordinationUi.activeTab==="reminders"?"active":""}">Nhắc nhở</button><button type="button" data-coord-tab="details" class="${coordinationUi.activeTab==="details"?"active":""}">Chi tiết</button><button type="button" data-coord-tab="matrix" class="${coordinationUi.activeTab==="matrix"?"active":""}">Ma trận</button></div><button type="button" class="primary coord-recommend-open">Gợi ý đơn mới</button></div><section class="coord-tab-panel">${coordinationUi.activeTab==="matrix"?'<div data-matrix-root></div>':coordinationUi.activeTab==="reminders"?renderReminders(state):renderDetail(state)}</section></div>`;
- if(coordinationUi.activeTab==="matrix"){
-  mountMatrix(root.querySelector('[data-matrix-root]'),()=>matrixGetState?.()||state,matrixActions);
-  const today=new Date().toDateString();
-  const refreshDate=()=>{if(coordinationUi.activeTab!=="matrix")return;if(new Date().toDateString()!==today)renderCoordinationWorkspace(matrixGetState?.()||state);else matrixTimer=setTimeout(refreshDate,30000);};
-  matrixTimer=setTimeout(refreshDate,30000);
- }
- root.querySelectorAll("[data-coord-tab]").forEach(button=>button.onclick=()=>{coordinationUi.activeTab=button.dataset.coordTab;renderCoordinationWorkspace(state);});root.querySelector(".coord-recommend-open").onclick=()=>recommendationModal(state);
- root.querySelectorAll("[data-open-reminder], [data-reminder-card]").forEach(element=>element.onclick=event=>{if(element.hasAttribute("data-reminder-card")&&event.target.closest("button"))return;const [cardId,programId]=(element.dataset.openReminder||element.dataset.reminderCard).split("|");const card=state.customerCards.find(item=>item.id===cardId);if(!card)return;coordinationUi.activeTab="details";coordinationUi.selectedCardProductId=card.cardProductId;coordinationUi.selectedProgramId=programId;coordinationUi.focusCustomerCardId=cardId;coordinationUi.customerSearch="";coordinationUi.statusFilter="";renderCoordinationWorkspace(state);focusRow();});
- const cardPicker=root.querySelector("[data-card-picker]");if(cardPicker)cardPicker.onchange=()=>{const value=normalize(cardPicker.value),product=cardProducts(state).find(item=>normalize(item.cardId)===value||normalize(productLabel(state,item))===value);if(!product)return;coordinationUi.selectedCardProductId=product.id;coordinationUi.selectedProgramId="";coordinationUi.focusCustomerCardId="";renderCoordinationWorkspace(state);};
- const programPicker=root.querySelector("[data-program-picker]");if(programPicker)programPicker.onchange=()=>{coordinationUi.selectedProgramId=programPicker.value;renderCoordinationWorkspace(state);};
- const search=root.querySelector("[data-customer-search]");if(search)search.oninput=()=>{coordinationUi.customerSearch=search.value;const rows=detailRows(state),body=root.querySelector(".coord-table tbody");if(body)body.innerHTML=rows.map(customerRow).join("");};
- const status=root.querySelector("[data-status-filter]");if(status)status.onchange=()=>{coordinationUi.statusFilter=status.value;renderCoordinationWorkspace(state);};const sort=root.querySelector("[data-sort-mode]");if(sort)sort.onchange=()=>{coordinationUi.sortMode=sort.value;renderCoordinationWorkspace(state);};
- root.querySelectorAll(".coord-table tbody tr").forEach(row=>{row.tabIndex=0;row.onclick=()=>row.classList.toggle("coord-expanded");row.onkeydown=event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();row.classList.toggle("coord-expanded");}};});
+ const root=document.querySelector("#view-coordination");if(!root)return;coordinationUi.activeTab="matrix";root.innerHTML='<div class="coord-workspace matrix-primary-workspace"><div data-matrix-root></div></div>';
+ mountMatrix(root.querySelector('[data-matrix-root]'),()=>matrixGetState?.()||state,matrixActions);
+ const today=new Date().toDateString();
+ const refreshDate=()=>{if(new Date().toDateString()!==today)renderCoordinationWorkspace(matrixGetState?.()||state);else matrixTimer=setTimeout(refreshDate,30000);};
+ matrixTimer=setTimeout(refreshDate,30000);
 }

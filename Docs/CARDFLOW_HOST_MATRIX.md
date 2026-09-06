@@ -2,7 +2,7 @@
 
 ## Phạm vi và dữ liệu
 
-- Thêm `Ma trận` cạnh `Nhắc nhở` và `Chi tiết`; giữ các luồng hiện có.
+- `Điều phối đơn` mở thẳng `Ma trận`; không còn sub-tab `Nhắc nhở` / `Chi tiết` hoặc nút `Gợi ý đơn mới`.
 - Dùng `customers`, `customerCards`, `cardProducts`, `cashbackPrograms`, `transactions`, `banks`, `mccCategories` hiện có. Giao dịch nối với thẻ sở hữu qua `customerCardId`, chương trình qua `cashbackProgramId`.
 - Không thêm trường dữ liệu, không đổi schema hoặc khóa `cardflow-host-data-v1`, không lưu trạng thái/màu Ma trận. Bộ lọc chỉ tồn tại trong bộ nhớ giao diện.
 - `matrix-engine.js` lập chỉ mục giao dịch theo thẻ sở hữu, rồi gọi `calculateProgress` trên tập giao dịch của thẻ; không quét toàn bộ giao dịch cho từng ô. Mô hình được dùng lại khi lọc trong cùng lần dựng giao diện.
@@ -32,7 +32,8 @@
 - Tìm ngân hàng/Card ID/phôi/chương trình; lọc ngân hàng, Card ID, chương trình, trạng thái, `Chỉ hiện cần xử lý`.
 - Dropdown khách hàng có tìm tên, chọn tất cả, bỏ chọn tất cả, chọn nhiều; tên đầy đủ vẫn giữ nguyên trong dữ liệu. `formatMatrixCustomerName` rút gọn các từ trước từ cuối, ví dụ `N.Q.Minh`.
 - Sắp xếp theo ngân hàng → Card ID → chương trình; khách hàng theo tên đầy đủ với locale `vi` và ID phá hòa để thứ tự ổn định.
-- Desktop/tablet ngang: bốn cột cố định Ngân hàng 60px / Card ID 100px / Phôi 54px / Chương trình hoàn tiền 140px; cột khách cố định 56px. Tổng vùng cố định 354px. Cuộn riêng bảng và header sticky; các chương trình cùng thẻ được phân nhóm bằng đường phân cách.
+- Desktop/tablet ngang: ba cột cố định Card ID 88px / Phôi 54px / Chương trình hoàn tiền 132px; cột khách cố định 56px. Card ID có thể kéo 60–180px, Phôi 45–120px, Chương trình 90–300px. Tổng vùng cố định mặc định 274px. Biến CSS tính các offset sticky theo chiều rộng hiện tại; lựa chọn lưu cục bộ bằng `cardflow-host-matrix-column-widths-v1`.
+- Chỉ có nút `Bộ lọc` ở trên bảng, dùng `filter-trigger`, `filter-panel`, badge và cách đóng khi click ngoài giống Giao dịch. Panel có Card ID, Phôi, chương trình, trạng thái, chỉ hiện cần xử lý và chọn nhiều khách hàng.
 - Tối ưu mật độ: ưu tiên mã ngân hàng hiện có, phôi viết gọn VISA/MASTER/JCB/AMEX; tên khách và chương trình giới hạn hai dòng, có tooltip đầy đủ. Ô xanh dùng `0`, tiến độ dùng định dạng `1.5tr/4tr`, cho phép xuống dòng tại dấu `/`; không có đơn vị đồng trong ô. Giữ nguyên modal và logic nghiệp vụ. Đã kiểm tra Chrome với 64 cột khách trên desktop và tablet ngang.
 - Điện thoại và tablet dọc đến 1024px: danh sách chương trình có thể thu/mở và các khách hàng xếp dọc, không ép bảng lớn vào màn hình nhỏ.
 
@@ -49,7 +50,7 @@
 ## Kiểm tra
 
 - `node --test tests/matrix.test.mjs`: 8 kiểm thử đạt, bao phủ A–J, ngữ cảnh K/L, thứ tự, dữ liệu sau đồng bộ và sửa chương trình/giao dịch.
-- Kiểm thử Chrome headless riêng: K/L/M, lưu đơn và đổi sang vàng, bốn cột cố định khi thực sự cuộn ngang, không tràn trang, bộ lọc và các kích thước 1440×1000, 1024×768, 768×1024, 390×844 đều đạt. Đã xem ảnh desktop/mobile.
+- Kiểm thử Chrome headless riêng: K/L/M, lưu đơn và đổi sang vàng, ba cột cố định khi thực sự cuộn ngang, lọc/click ngoài, kéo Card ID và lưu chiều rộng, không tràn trang, các kích thước 1440×1000, 1024×768, 768×1024, 390×844 đều đạt.
 - Chạy kiểm thử trình duyệt bằng PowerShell: `$env:MATRIX_BROWSER_TEST='1'; node --test tests/matrix-browser.test.mjs`. Có thể đặt `CHROME_PATH` nếu Chrome nằm ở đường dẫn khác. Hồ sơ Chrome và dữ liệu kiểm thử riêng, không dùng tài khoản/dữ liệu thật. Mặc định kiểm thử này bỏ qua trong bộ unit test.
 - Toàn bộ `node --test tests/*.test.mjs`: 121 kiểm thử, 117 đạt, 3 lỗi có sẵn, 1 bỏ qua (Chrome chạy riêng và đạt).
 - Ba lỗi có sẵn: `cashflow modal uses compact unequal fee columns`, `cashflow compact fee stylesheet cache is bumped`, `cashflow modal CSS cache version matches latest compact-fee layout release`. Đã đối chiếu HEAD: CSS không còn kích thước mà test yêu cầu; HTML gốc dùng phiên bản CSS `20260905-cashback-conditions-v1`, còn test yêu cầu `20260903-cashflow-compact-fee-v1`. Không sửa giao diện Dòng tiền ngoài phạm vi.
