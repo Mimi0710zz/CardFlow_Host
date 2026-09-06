@@ -410,3 +410,15 @@ table[data-feature-table="transaction-cashflow"] td:nth-child(13){text-align:cen
 .matrix-table thead th .matrix-header-name{color:var(--nav2)}
 .cashback-bank-cell{vertical-align:top;font-weight:700;white-space:nowrap}
 .sheets-color-field{position:relative}.sheets-color-trigger{display:flex;align-items:center;gap:8px;width:max-content;min-width:150px;background:#fff}.sheets-color-trigger i,.sheets-color-current i{display:block;width:22px;height:22px;border-radius:50%;background:var(--choice-color);border:1px solid var(--line)}.sheets-color-popover{display:none;position:absolute;z-index:50;top:100%;left:0;width:290px;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;box-shadow:0 14px 36px rgba(22,34,54,.18);gap:8px}.sheets-color-popover.open{display:grid}.sheets-color-current{display:flex;align-items:center;gap:8px;padding:7px;background:#f7f9fc}.sheets-color-row,.sheets-color-grid{display:flex;flex-wrap:wrap;gap:6px}.sheets-color-grid{display:grid;grid-template-columns:repeat(9,1fr)}.sheets-color-popover .color-choice{width:24px;height:24px;min-height:24px;padding:0;border-radius:50%;background:var(--choice-color);border:2px solid #fff;box-shadow:0 0 0 1px rgba(23,32,51,.18);cursor:pointer}.sheets-color-popover .color-choice.selected{box-shadow:0 0 0 2px var(--nav2)}.sheets-custom-color{display:flex;align-items:center;justify-content:space-between;font-size:12px}.sheets-custom-color input{width:38px;height:28px;padding:0}.insurance-url{display:inline-block;max-width:min(520px,calc(100vw - 260px));overflow:hidden;text-overflow:ellipsis;vertical-align:middle}.insurance-copy{margin-left:7px!important}
+
+/* Keep the order-type editor compact while leaving the full color palette visible. */
+.modal-card.order-type-modal{width:min(560px,calc(100vw - 36px));height:min(88vh,760px);min-height:560px;max-height:92vh;display:flex;flex-direction:column;overflow:visible}
+.modal-card.order-type-modal .modal-body{display:grid;grid-template-columns:1fr;align-content:start;gap:12px;flex:1 1 auto;min-height:0;overflow:visible}
+.modal-card.order-type-modal .form-actions{flex:0 0 auto}
+.modal-card.order-type-modal .sheets-color-field{z-index:20}
+.modal-card.order-type-modal .sheets-color-popover{width:340px;max-width:calc(100vw - 64px);max-height:none;overflow:visible;z-index:1200}
+@media(max-width:767px){
+  .modal-card.order-type-modal{width:calc(100vw - 16px);height:auto;min-height:0;max-height:calc(100dvh - 16px);overflow:hidden}
+  .modal-card.order-type-modal .modal-body{overflow-y:auto;padding-right:2px}
+  .modal-card.order-type-modal .sheets-color-popover{position:fixed;left:12px;right:12px;top:auto;bottom:12px;width:auto;max-width:none;max-height:70dvh;overflow-y:auto}
+}
