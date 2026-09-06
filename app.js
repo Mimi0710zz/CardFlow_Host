@@ -11,6 +11,8 @@ import {renderCashbackFeatures,renderCashbackDashboard} from "./services/cashbac
 import {applyHostBootstrapData} from "./services/host-bootstrap.js?v=20260902-transaction-fees-v1";
 import {customerCardCycleConfig} from "./services/cashback-cycle.js?v=20260901-statement-day-owner-v1";
 import {currentHostGuideItems,currentAboutIntroduction} from "./services/about-guide-content.js?v=20260901-about-guide-latest-v1";
+import {INSURANCE_LINKS} from "./services/insurance-links.js";
+import {attachResizableTables} from "./services/table-resize.js";
 
 const $=(selector,root=document)=>root.querySelector(selector), $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
 const repo=new LocalRepository(); let state=repo.load(), currentView="dashboard", filters={}, sorts={}, pendingRemote=null;
@@ -25,9 +27,10 @@ const VIEW_META={
   cards:{title:"Thẻ ngân hàng",description:"Quản lý sản phẩm thẻ ngân hàng dùng chung"},
   transactions:{title:"Giao Dịch",description:"Quản lý đánh đơn và dòng tiền theo tháng"},
   coordination:{title:"Điều phối đơn",description:"Theo dõi tiến độ và điều phối giao dịch theo chương trình hoàn tiền"},
-  programs:{title:"Chương trình hoàn tiền",description:"Cấu hình rule một lần cho từng Thẻ ngân hàng"},
+  programs:{title:"Chương trình hoàn tiền",description:"Cấu hình rule một lần cho từng Thẻ ngân hàng",showPeriodFilter:false},
   mcc:{title:"Mã MCC",description:"Danh mục nhóm ngành và mã MCC"},
   "order-types":{title:"Loại đơn",description:"Quản lý danh mục loại đơn dùng khi đánh đơn"},
+  "insurance-links":{title:"Link Bảo Hiểm",description:"Danh sách link thanh toán phí bảo hiểm",showPeriodFilter:false},
   "source-names":{title:"Tên nguồn",description:"Quản lý danh mục nguồn/đơn vị thu mua dùng cho Dòng tiền"},
   catalog:{title:"Danh mục",description:"Quản lý dữ liệu danh mục"},
   system:{title:"Hệ thống",description:"Nhập liệu, đồng bộ và sao lưu"},
@@ -44,7 +47,7 @@ const ICON_PATHS={
   "circle-help":'<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 1 1 5.83 1c0 2-3 2-3 4M12 18h.01"/>',
   play:'<circle cx="12" cy="12" r="10"/><path d="m10 8 6 4-6 4Z"/>',
   cloud:'<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
-  link:'<path d="M10 13a5 5 0 0 0 7.07.07l2-2a5 5 0 0 0-7.07-7.07l-1.15 1.15M14 11a5 5 0 0 0-7.07-.07l-2 2A5 5 0 0 0 12 20l1.15-1.15"/>',
+  link:'<path d="M10 13a5 5 0 0 0 7.07.07l2-2a5 5 0 0 0-7.07-7.07l-1.15 1.15M14 11a5 5 0 0 0-7.07-.07l-2 2A5 5 0 0 0 12 20l1.15-1.15"/>',external:'<path d="M14 3h7v7M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
   search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
   edit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
   refresh:'<path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"/>',
@@ -64,8 +67,9 @@ const effectiveLimit=links=>calculateEffectiveCreditLimit(links,state.cardProduc
 function effectiveLimitDisplay(analysis){return analysis.inconsistencies.length?`<span class="limit-warning" title="Nhóm hạn mức chung có giá trị không đồng nhất">⚠ Cần kiểm tra</span>`:formatMoney(analysis.total,true);}
 function colorSwatch(color,label=""){const value=normalizeColor(color)||"#64748b";return `<span class="color-swatch" style="--swatch-color:${esc(value)}" title="${esc(label||value)}"></span>`;}
 function orderTypeColorCell(item){const color=normalizeColor(item?.color)||orderTypeDefaultColor(item?.code);return `<span class="order-type-color-cell">${colorSwatch(color,item?.code)}<span>${esc(color)}</span></span>`;}
-function colorPickerField(name,label,value){const current=normalizeColor(value)||orderTypeDefaultColor("");return `<div class="field full color-picker-field" data-color-picker><label>${label}</label><div class="color-picker-control"><input name="${name}" type="color" value="${esc(current)}" data-color-input aria-label="${esc(label)}"><span class="color-picker-preview" data-color-preview style="--selected-color:${esc(current)}"></span><div class="color-palette" role="listbox" aria-label="${esc(label)}">${DEFAULT_ORDER_TYPE_COLORS.map(color=>`<button type="button" class="color-choice ${color===current?"selected":""}" data-color-choice="${esc(color)}" style="--choice-color:${esc(color)}" aria-label="${esc(color)}"></button>`).join("")}</div></div></div>`;}
-function bindColorPickers(root=document){$$("[data-color-picker]",root).forEach(picker=>{const input=$("[data-color-input]",picker),preview=$("[data-color-preview]",picker),choices=$$("[data-color-choice]",picker);if(!input)return;const update=value=>{const color=normalizeColor(value)||orderTypeDefaultColor("");input.value=color;if(preview)preview.style.setProperty("--selected-color",color);choices.forEach(choice=>choice.classList.toggle("selected",choice.dataset.colorChoice===color));};input.addEventListener("input",()=>update(input.value));choices.forEach(choice=>choice.addEventListener("click",()=>update(choice.dataset.colorChoice)));update(input.value);});}
+function colorPickerField(name,label,value){const current=normalizeColor(value)||orderTypeDefaultColor("");return `<div class="field full color-picker-field" data-color-picker><label>${label}</label><input name="${name}" type="hidden" value="${esc(current)}" data-color-input><button type="button" class="sheets-color-trigger"><i style="--choice-color:${esc(current)}"></i><span>${esc(current)}</span></button><div class="sheets-color-popover"><strong>Chọn màu</strong><div class="sheets-color-current"><i data-color-preview style="--choice-color:${esc(current)}"></i><span data-color-label>${esc(current)}</span></div><b>Màu tiêu chuẩn</b><div class="sheets-color-row">${DEFAULT_ORDER_TYPE_COLORS.slice(0,11).map(color=>`<button type="button" class="color-choice ${color===current?"selected":""}" data-color-choice="${esc(color)}" style="--choice-color:${esc(color)}" aria-label="${esc(color)}"></button>`).join("")}</div><b>Màu tùy chỉnh</b><div class="sheets-color-grid">${DEFAULT_ORDER_TYPE_COLORS.slice(11).map(color=>`<button type="button" class="color-choice ${color===current?"selected":""}" data-color-choice="${esc(color)}" style="--choice-color:${esc(color)}" aria-label="${esc(color)}"></button>`).join("")}</div><label class="sheets-custom-color">Tùy chỉnh màu khác<input name="${name}" type="color" value="${esc(current)}" data-color-native></label></div></div>`;}
+let colorPickerOutsideCleanup=()=>{};
+function bindColorPickers(root=document){colorPickerOutsideCleanup();$$(["[data-color-picker]"].join(),root).forEach(picker=>{const input=$("[data-color-input]",picker),preview=$("[data-color-preview]",picker),label=$("[data-color-label]",picker),trigger=$(".sheets-color-trigger",picker),popover=$(".sheets-color-popover",picker),native=$("[data-color-native]",picker),choices=$$("[data-color-choice]",picker);if(!input)return;const update=value=>{const color=normalizeColor(value)||orderTypeDefaultColor("");input.value=color;native.value=color;trigger.querySelector("i").style.setProperty("--choice-color",color);if(preview)preview.style.setProperty("--choice-color",color);if(label)label.textContent=color;choices.forEach(choice=>choice.classList.toggle("selected",choice.dataset.colorChoice===color));};trigger.onclick=e=>{e.stopPropagation();document.querySelectorAll(".sheets-color-popover.open").forEach(x=>x!==popover&&x.classList.remove("open"));popover.classList.toggle("open");};native.oninput=()=>update(native.value);choices.forEach(choice=>choice.addEventListener("click",()=>update(choice.dataset.colorChoice)));const outside=e=>{if(!picker.contains(e.target))popover.classList.remove("open")};document.addEventListener("pointerdown",outside);colorPickerOutsideCleanup=()=>document.removeEventListener("pointerdown",outside);update(input.value);});}
 function limitInconsistencyWarning(analysis){
   if(!analysis.inconsistencies.length)return "";
   const rows=analysis.inconsistencies.map(group=>{const names=group.members.map(link=>product(link.cardProductId)?.cardId||link.cardProductId).join(", "),limits=group.limits.map(formatMoney).join(" / ");return `<li><strong>${esc(names)}</strong>: ${esc(limits)}</li>`;}).join("");
@@ -209,8 +213,10 @@ function bindCustomerCardEditor(root){
 }
 function entityTable(headers,rows,entity,emptyMessage="Không có dữ liệu phù hợp.",hasFilters=false){return rows.length?`<div class="table-wrap"><table class="mobile" data-entity="${entity}"><thead><tr>${headers.map((h,i)=>`<th data-sort="${i}">${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`:`<div class="empty">${esc(emptyMessage)}${hasFilters?'<br><button data-clear-filter>Xóa tìm kiếm và bộ lọc</button>':""}</div>`;}
 function cell(label,value){return `<td data-label="${label}">${value}</td>`;}
+let insuranceSearch="";
+function renderInsuranceLinks(){const root=$("#view-insurance-links");if(!root)return;const query=normalize(insuranceSearch),rows=INSURANCE_LINKS.filter(item=>!query||normalize(`${item.name} ${item.url}`).includes(query));root.innerHTML=`<div class="panel"><h2>Link Bảo Hiểm</h2><div class="insurance-toolbar"><input data-insurance-search placeholder="Tìm bảo hiểm hoặc link..." value="${esc(insuranceSearch)}"></div>${entityTable(["STT","Bảo hiểm","Link thanh toán","Mở link"],rows.map(item=>`<tr><td>${item.index}</td><td>${esc(item.name)}</td><td><span class="insurance-url" title="${esc(item.url)}">${esc(item.url)}</span><button type="button" class="icon-btn insurance-copy" data-copy-insurance="${esc(item.url)}" title="Sao chép link" aria-label="Sao chép link">${icon("copy")}</button></td><td><a class="icon-btn" href="${esc(item.url)}" target="_blank" rel="noopener noreferrer" title="Mở link" aria-label="Mở link">${icon("external")}</a></td></tr>`),"insurance-links","Chưa có link.")}</div>`;root.querySelector("[data-insurance-search]")?.addEventListener("input",e=>{insuranceSearch=e.target.value;renderInsuranceLinks();});root.querySelectorAll("[data-copy-insurance]").forEach(button=>button.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(button.dataset.copyInsurance);toast("Đã sao chép link");}catch{toast("Không thể sao chép link");}}));}
 
-function render(){removeCompactFilterOutsideListener();renderDashboard();renderCustomers();renderCards();renderOrderTypes();renderSourceNames();renderCatalog();renderSystem();renderAbout();renderCashbackFeatures({state,getState:()=>state,save,uuid,toast});bindTables();bindHelpTabs();}
+function render(){removeCompactFilterOutsideListener();renderDashboard();renderCustomers();renderCards();renderOrderTypes();renderInsuranceLinks();renderSourceNames();renderCatalog();renderSystem();renderAbout();renderCashbackFeatures({state,getState:()=>state,save,uuid,toast});bindTables();bindHelpTabs();attachResizableTables();}
 function applyLoadedState(data){return applyHostBootstrapData(data,{applyState:value=>{state=value;},renderApp:()=>{render();renderSyncStatus();}});}
 function renderDashboard(){
   const active=state.customerCards.filter(x=>x.status==="active"),limitAnalysis=effectiveLimit(active),validCustomerIds=new Set(state.customers.map(item=>item.id));
@@ -433,6 +439,7 @@ function setView(name){
   const meta=VIEW_META[name]||{title:name,description:""};
   $(".topbar h1").textContent=meta.title;
   $("#subtitle").textContent=meta.description;
+  $(".period-filter")?.classList.toggle("page-context-hidden",meta.showPeriodFilter===false);
   $(".drive-panel")?.toggleAttribute("hidden",name==="about");
   setSidebarOpen(false);
 }
