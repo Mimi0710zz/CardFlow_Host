@@ -476,3 +476,69 @@ table[data-feature-table="transaction-cashflow"] td:nth-child(13){text-align:cen
   .word-color-popover{position:fixed;left:10px;right:10px;top:auto;bottom:10px;width:auto;max-height:74dvh;overflow-y:auto}
   .word-more-dialog{padding:8px}.word-more-content{grid-template-columns:1fr}.word-more-actions{display:grid;grid-template-columns:1fr 1fr}.word-preview-label,.word-preview{display:none}.word-tab-panel{min-height:260px}
 }
+
+/* 2026-09-07: Coordination matrix bank column + stable merged info columns */
+.matrix-table{
+  width:calc(var(--matrix-bank-width) + var(--matrix-card-width) + var(--matrix-brand-width) + var(--matrix-program-width) + var(--matrix-customer-total-width,0px));
+}
+.matrix-table .matrix-bank-head,
+.matrix-table .matrix-bank-col{
+  position:sticky;
+  left:0;
+  width:var(--matrix-bank-width);
+  min-width:var(--matrix-bank-width);
+  max-width:var(--matrix-bank-width);
+  z-index:3;
+  background:#fff;
+}
+.matrix-table .matrix-card-head,
+.matrix-table .matrix-card-col{
+  position:sticky;
+  left:var(--matrix-bank-width);
+  width:var(--matrix-card-width);
+  min-width:var(--matrix-card-width);
+  max-width:var(--matrix-card-width);
+  z-index:3;
+  background:#fff;
+}
+.matrix-table .matrix-brand-head,
+.matrix-table .matrix-brand-col{
+  position:sticky;
+  left:calc(var(--matrix-bank-width) + var(--matrix-card-width));
+  width:var(--matrix-brand-width);
+  min-width:var(--matrix-brand-width);
+  max-width:var(--matrix-brand-width);
+  z-index:3;
+  background:#fff;
+}
+.matrix-table .matrix-program-head,
+.matrix-table .matrix-program-col{
+  position:sticky;
+  left:calc(var(--matrix-bank-width) + var(--matrix-card-width) + var(--matrix-brand-width));
+  width:var(--matrix-program-width);
+  min-width:var(--matrix-program-width);
+  max-width:var(--matrix-program-width);
+  z-index:3;
+  background:#fff;
+  border-right:2px solid #cbd5e1;
+}
+.matrix-table thead .matrix-bank-head,
+.matrix-table thead .matrix-card-head,
+.matrix-table thead .matrix-brand-head,
+.matrix-table thead .matrix-program-head{
+  z-index:8;
+  background:#f0f3f8;
+}
+.matrix-table .matrix-bank-col,
+.matrix-table .matrix-card-col{
+  vertical-align:middle;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.matrix-table .matrix-brand-col{white-space:nowrap;}
+.matrix-table .matrix-program-col{white-space:normal;}
+.matrix-table [data-matrix-customer]{
+  width:var(--matrix-customer-width,56px);
+  min-width:var(--matrix-customer-width,56px);
+  max-width:var(--matrix-customer-width,56px);
+}
