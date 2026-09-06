@@ -423,10 +423,8 @@ table[data-feature-table="transaction-cashflow"] td:nth-child(13){text-align:cen
   .modal-card.order-type-modal .sheets-color-popover{position:fixed;left:12px;right:12px;top:auto;bottom:12px;width:auto;max-width:none;max-height:70dvh;overflow-y:auto}
 }
 
-/* Word-style order-type color picker */
-.modal-card.order-type-modal{width:min(560px,calc(100vw - 36px));height:min(90vh,820px);min-height:620px;max-height:92vh;display:flex;flex-direction:column;overflow:visible}
-.modal-card.order-type-modal .modal-body{display:grid;grid-template-columns:1fr;align-content:start;gap:12px;flex:1 1 auto;min-height:0;overflow:visible}
-.modal-card.order-type-modal .form-actions{flex:0 0 auto}
+
+/* Word-style color picker for Loại đơn (Host) */
 .word-color-field{position:relative;z-index:30}
 .word-color-trigger{display:flex;align-items:center;gap:8px;width:188px;min-height:38px;padding:6px 9px;border:1px solid #9aa3ad;border-radius:0;background:#fff;color:var(--ink);text-align:left;cursor:pointer}
 .word-color-trigger i,.word-automatic i{display:block;width:20px;height:20px;background:var(--choice-color);border:1px solid rgba(0,0,0,.22);flex:0 0 auto}
