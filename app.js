@@ -244,13 +244,27 @@ function responsiveOwnedCards(customerItem,links){
   return `<div class="owned-card-section"><div class="owned-card-section-head"><strong>Thẻ đang sở hữu</strong><small>${cards.length} thẻ · Card ID A → Z</small></div><div class="owned-card-list">${cardItems||'<div class="owned-card-empty">Chưa gán thẻ.</div>'}</div><div class="responsive-customer-actions"><button type="button" data-responsive-customer-detail="${customerItem.id}">Chi tiết</button><button type="button" data-responsive-customer-edit="${customerItem.id}">Tùy chỉnh</button><button type="button" class="danger" data-responsive-customer-delete="${customerItem.id}">Xóa</button></div></div>`;
 }
 function responsiveStatusLabel(status){return status==="active"?"Đang hoạt động":status==="closed"?"Đã đóng":"Ngừng hoạt động";}
-function renderCards(){
-  const f=filters.cards||{}, q=normalize(f.q);let items=state.cardProducts.filter(p=>{const links=linksForProduct(p.id),owners=links.map(x=>customer(x.customerId)).filter(Boolean);const hay=[p.cardId,bank(p.bankId)?.name,p.cardName,p.cardRank,p.ownershipType,p.cardBrand,p.network,p.cardForm,...owners.map(x=>x.fullName)].map(normalize).join(" ");return (!q||hay.includes(q))&&(!f.bank||p.bankId===f.bank)&&(!f.rank||p.cardRank===f.rank)&&(!f.ownership||p.ownershipType===f.ownership)&&(!f.brand||(p.cardBrand||p.network)===f.brand)&&(!f.form||p.cardForm===f.form);});
-  items.sort((a,b)=>compareCards(a,b,x=>bank(x.bankId)?.name||""));
-  const rows=items.map(p=>{const links=linksForProduct(p.id);return `<tr data-id="${p.id}">${cell("Card ID",`<strong>${esc(p.cardId)}</strong>`)}${cell("Loại thẻ",ownershipTypeLabel(p.ownershipType))}${cell("Ngân hàng",esc(bank(p.bankId)?.name||"—"))}${cell("Tên thẻ",esc(p.cardName))}${cell("Hạng thẻ",esc(p.cardRank))}${cell("Phôi",esc(p.cardBrand||p.network||"—"))}${cell("Hình thức thẻ",esc(p.cardForm||"—"))}${cell("Hình thức hoàn",esc(cashbackCycleModeLabel(p.cashbackCycleMode)))}${cell("Số khách sở hữu",links.length)}${cell("Ghi chú",esc(p.notes||"—"))}</tr>`;});
-  const filterFields=filterSelect("cards.bank","Ngân hàng",state.banks,f.bank,x=>x.name)+plainFilter("cards.rank","Hạng thẻ",CARD_RANKS.map(x=>`${x}|${x}`),f.rank,true)+plainFilter("cards.ownership","Loại thẻ",OWNERSHIP_TYPES.map(x=>`${x}|${ownershipTypeLabel(x)}`),f.ownership)+plainFilter("cards.brand","Phôi",cardBrandValues().map(x=>`${x}|${x}`),f.brand)+plainFilter("cards.form","Hình thức thẻ",CARD_FORMS.map(x=>`${x}|${x}`),f.form);
-  $("#view-cards").innerHTML=`<div class="panel"><div class="section-title"><h2>Thẻ ngân hàng</h2></div>${compactEntityToolbar("cards","product","Tìm Card ID, ngân hàng, hạng thẻ...",f,filterFields)}${entityTable(["Card ID","Loại thẻ","Ngân hàng","Tên thẻ","Hạng thẻ","Phôi","Hình thức thẻ","Hình thức hoàn","Số khách sở hữu","Ghi chú"],rows,"product",state.cardProducts.length?"Không có thẻ ngân hàng phù hợp.":"Chưa có thẻ ngân hàng.",Boolean(Object.values(f).some(Boolean)))}</div>`;
+function cardBankName(card){
+  return bank(card?.bankId)?.name||card?.bank||"—";
 }
+function renderCards(){
+  const f=filters.cards||{},q=normalize(f.q);
+  const items=state.cardProducts.filter(p=>{const links=linksForProduct(p.id),owners=links.map(x=>customer(x.customerId)).filter(Boolean),hay=[p.cardId,cardBankName(p),p.cardName,p.cardRank,p.ownershipType,p.cardBrand,p.network,p.cardForm,...owners.map(x=>x.fullName)].map(normalize).join(" ");return (!q||hay.includes(q))&&(!f.bank||p.bankId===f.bank)&&(!f.rank||p.cardRank===f.rank)&&(!f.ownership||p.ownershipType===f.ownership)&&(!f.brand||(p.cardBrand||p.network)===f.brand)&&(!f.form||p.cardForm===f.form);}).sort((left,right)=>compareText(cardBankName(left),cardBankName(right))||compareCardId(left,right)||compareText(left.cardName,right.cardName));
+  const mergeBanks=window.matchMedia?.("(min-width:768px)")?.matches!==false;
+  const bankSpanAt=index=>{
+    if(!mergeBanks)return 1;
+    const name=cardBankName(items[index]);
+    if(index>0&&cardBankName(items[index-1])===name)return 0;
+    let span=1;
+    while(index+span<items.length&&cardBankName(items[index+span])===name)span+=1;
+    return span;
+  };
+  const rows=items.map((p,index)=>{const links=linksForProduct(p.id),span=bankSpanAt(index);return `<tr data-id="${p.id}">${span?`<td data-label="Ngân hàng" rowspan="${span}" class="cashback-bank-cell">${esc(cardBankName(p))}</td>`:""}${cell("Card ID",`<strong>${esc(p.cardId)}</strong>`)}${cell("Loại thẻ",ownershipTypeLabel(p.ownershipType))}${cell("Tên thẻ",esc(p.cardName))}${cell("Hạng thẻ",esc(p.cardRank))}${cell("Phôi",esc(p.cardBrand||p.network||"—"))}${cell("Hình thức thẻ",esc(p.cardForm||"—"))}${cell("Hình thức hoàn",esc(cashbackCycleModeLabel(p.cashbackCycleMode)))}${cell("Số khách sở hữu",links.length)}${cell("Ghi chú",esc(p.notes||"—"))}</tr>`;});
+  const filterFields=filterSelect("cards.bank","Ngân hàng",state.banks,f.bank,x=>x.name)+plainFilter("cards.rank","Hạng thẻ",CARD_RANKS.map(x=>`${x}|${x}`),f.rank,true)+plainFilter("cards.ownership","Loại thẻ",OWNERSHIP_TYPES.map(x=>`${x}|${ownershipTypeLabel(x)}`),f.ownership)+plainFilter("cards.brand","Phôi",cardBrandValues().map(x=>`${x}|${x}`),f.brand)+plainFilter("cards.form","Hình thức thẻ",CARD_FORMS.map(x=>`${x}|${x}`),f.form);
+  $("#view-cards").innerHTML=`<div class="panel"><div class="section-title"><h2>Thẻ ngân hàng</h2></div>${compactEntityToolbar("cards","product","Tìm Card ID, ngân hàng, hạng thẻ...",f,filterFields)}${entityTable(["Ngân hàng","Card ID","Loại thẻ","Tên thẻ","Hạng thẻ","Phôi","Hình thức thẻ","Hình thức hoàn","Số khách sở hữu","Ghi chú"],rows,"product",state.cardProducts.length?"Không có thẻ ngân hàng phù hợp.":"Chưa có thẻ ngân hàng.",Boolean(Object.values(f).some(Boolean)))}</div>`;
+}
+
+
 function compactEntityToolbar(group,entity,placeholder,current,fields){
   const count=Object.entries(current).filter(([key,value])=>key!=="q"&&value).length;
   const prepared=fields.replace(/<select data-filter="([^"]+)">([\s\S]*?)<\/select>/g,(match,path,options)=>{const key=path.split(".")[1],active=Boolean(current[key]),label=options.match(/^<option value="">(.*?): Tất cả<\/option>/)?.[1]||key;return `<label class="filter-option"><span><input type="checkbox" data-compact-enable="${key}" ${active?"checked":""}>${esc(label)}</span><select data-compact-filter="${path}" ${active?"":"disabled"}>${options}</select></label>`;});
