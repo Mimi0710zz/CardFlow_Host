@@ -557,3 +557,54 @@ table[data-feature-table="transaction-cashflow"] td:nth-child(13){text-align:cen
 }
 .matrix-table .matrix-customer-head{position:sticky;top:0;text-align:center}
 .matrix-table .matrix-customer-head .matrix-resize-handle{display:none!important}
+
+/* 2026-09-07: Matrix rowspan-safe resize fix.
+   Legacy nth-child rules cannot be trusted once Ngân hàng/Card ID cells use rowspan,
+   because following rows physically contain fewer <td> elements. Pin widths/offsets
+   by semantic class so every visible cell stays in its real column. */
+.matrix-table{table-layout:fixed!important;}
+.matrix-table thead th.matrix-bank-head,
+.matrix-table tbody td.matrix-bank-col{
+  position:sticky!important;
+  left:0!important;
+  width:var(--matrix-bank-width)!important;
+  min-width:var(--matrix-bank-width)!important;
+  max-width:var(--matrix-bank-width)!important;
+}
+.matrix-table thead th.matrix-card-head,
+.matrix-table tbody td.matrix-card-col{
+  position:sticky!important;
+  left:var(--matrix-bank-width)!important;
+  width:var(--matrix-card-width)!important;
+  min-width:var(--matrix-card-width)!important;
+  max-width:var(--matrix-card-width)!important;
+}
+.matrix-table thead th.matrix-brand-head,
+.matrix-table tbody td.matrix-brand-col{
+  position:sticky!important;
+  left:calc(var(--matrix-bank-width) + var(--matrix-card-width))!important;
+  width:var(--matrix-brand-width)!important;
+  min-width:var(--matrix-brand-width)!important;
+  max-width:var(--matrix-brand-width)!important;
+}
+.matrix-table thead th.matrix-program-head,
+.matrix-table tbody td.matrix-program-col{
+  position:sticky!important;
+  left:calc(var(--matrix-bank-width) + var(--matrix-card-width) + var(--matrix-brand-width))!important;
+  width:var(--matrix-program-width)!important;
+  min-width:var(--matrix-program-width)!important;
+  max-width:var(--matrix-program-width)!important;
+}
+.matrix-table tbody td.matrix-customer-col,
+.matrix-table thead th.matrix-customer-head{
+  position:static!important;
+  left:auto!important;
+  width:56px!important;
+  min-width:56px!important;
+  max-width:56px!important;
+}
+.matrix-table thead th.matrix-customer-head{
+  position:sticky!important;
+  top:0!important;
+  z-index:5!important;
+}
