@@ -67,162 +67,147 @@ const effectiveLimit=links=>calculateEffectiveCreditLimit(links,state.cardProduc
 function effectiveLimitDisplay(analysis){return analysis.inconsistencies.length?`<span class="limit-warning" title="Nhóm hạn mức chung có giá trị không đồng nhất">⚠ Cần kiểm tra</span>`:formatMoney(analysis.total,true);}
 function colorSwatch(color,label=""){const value=normalizeColor(color)||"#64748b";return `<span class="color-swatch" style="--swatch-color:${esc(value)}" title="${esc(label||value)}"></span>`;}
 function orderTypeColorCell(item){const color=normalizeColor(item?.color)||orderTypeDefaultColor(item?.code);return `<span class="order-type-color-cell">${colorSwatch(color,item?.code)}<span>${esc(color)}</span></span>`;}
-function colorPickerField(name,label,value){const current=normalizeColor(value)||orderTypeDefaultColor("");return `<div class="field full color-picker-field" data-color-picker><label>${label}</label><input name="${name}" type="hidden" value="${esc(current)}" data-color-input><button type="button" class="sheets-color-trigger"><i style="--choice-color:${esc(current)}"></i><span>${esc(current)}</span></button><div class="sheets-color-popover"><strong>Chọn màu</strong><div class="sheets-color-current"><i data-color-preview style="--choice-color:${esc(current)}"></i><span data-color-label>${esc(current)}</span></div><b>Màu tiêu chuẩn</b><div class="sheets-color-row">${DEFAULT_ORDER_TYPE_COLORS.slice(0,11).map(color=>`<button type="button" class="color-choice ${color===current?"selected":""}" data-color-choice="${esc(color)}" style="--choice-color:${esc(color)}" aria-label="${esc(color)}"></button>`).join("")}</div><b>Màu tùy chỉnh</b><div class="sheets-color-grid">${DEFAULT_ORDER_TYPE_COLORS.slice(11).map(color=>`<button type="button" class="color-choice ${color===current?"selected":""}" data-color-choice="${esc(color)}" style="--choice-color:${esc(color)}" aria-label="${esc(color)}"></button>`).join("")}</div><label class="sheets-custom-color">Tùy chỉnh màu khác<input name="${name}" type="color" value="${esc(current)}" data-color-native></label></div></div>`;}
-let colorPickerOutsideCleanup=()=>{};
-function bindColorPickers(root=document){colorPickerOutsideCleanup();$$(["[data-color-picker]"].join(),root).forEach(picker=>{const input=$("[data-color-input]",picker),preview=$("[data-color-preview]",picker),label=$("[data-color-label]",picker),trigger=$(".sheets-color-trigger",picker),popover=$(".sheets-color-popover",picker),native=$("[data-color-native]",picker),choices=$$("[data-color-choice]",picker);if(!input)return;const update=value=>{const color=normalizeColor(value)||orderTypeDefaultColor("");input.value=color;native.value=color;trigger.querySelector("i").style.setProperty("--choice-color",color);if(preview)preview.style.setProperty("--choice-color",color);if(label)label.textContent=color;choices.forEach(choice=>choice.classList.toggle("selected",choice.dataset.colorChoice===color));};trigger.onclick=e=>{e.stopPropagation();document.querySelectorAll(".sheets-color-popover.open").forEach(x=>x!==popover&&x.classList.remove("open"));popover.classList.toggle("open");};native.oninput=()=>update(native.value);choices.forEach(choice=>choice.addEventListener("click",()=>update(choice.dataset.colorChoice)));const outside=e=>{if(!picker.contains(e.target))popover.classList.remove("open")};document.addEventListener("pointerdown",outside);colorPickerOutsideCleanup=()=>document.removeEventListener("pointerdown",outside);update(input.value);});}
-function limitInconsistencyWarning(analysis){
-  if(!analysis.inconsistencies.length)return "";
-  const rows=analysis.inconsistencies.map(group=>{const names=group.members.map(link=>product(link.cardProductId)?.cardId||link.cardProductId).join(", "),limits=group.limits.map(formatMoney).join(" / ");return `<li><strong>${esc(names)}</strong>: ${esc(limits)}</li>`;}).join("");
-  return `<div class="credit-limit-alert"><strong>⚠ Hạn mức chung không nhất quán</strong><span>Nhóm dưới đây không được cộng vào tổng cho đến khi các thẻ có cùng hạn mức.</span><ul>${rows}</ul></div>`;
+const WORD_THEME_COLORS=[
+  ["#ffffff","#f2f2f2","#d9d9d9","#bfbfbf","#a6a6a6","#7f7f7f"],
+  ["#000000","#808080","#595959","#404040","#262626","#0d0d0d"],
+  ["#e7e6e6","#d0cece","#aeaaaa","#757171","#3a3838","#171616"],
+  ["#44546a","#d9e2f3","#b4c6e7","#8eaadb","#2f5597","#203864"],
+  ["#5b9bd5","#ddebf7","#bdd7ee","#9dc3e6","#2e75b6","#1f4e78"],
+  ["#ed7d31","#fce4d6","#f8cbad","#f4b183","#c65911","#833c0c"],
+  ["#70ad47","#e2f0d9","#c6e0b4","#a9d18e","#548235","#375623"],
+  ["#00b0f0","#d6e4f0","#b4d5e7","#84c4df","#0070c0","#005a8d"],
+  ["#a64d79","#eadcf8","#d5c0e8","#b995d6","#7030a0","#4c216d"],
+  ["#70ad47","#e2f0d9","#c6e0b4","#a9d18e","#548235","#375623"]
+];
+const WORD_STANDARD_COLORS=["#c00000","#ff0000","#ffc000","#ffff00","#92d050","#00b050","#00b0f0","#0070c0","#002060","#7030a0"];
+const WORD_MORE_COLORS=[
+  "#ff0000","#ff3300","#ff6600","#ff9900","#ffcc00","#ffff00","#ccff00","#99ff00","#66ff00","#33ff00","#00ff00","#00ff33",
+  "#00ff66","#00ff99","#00ffcc","#00ffff","#00ccff","#0099ff","#0066ff","#0033ff","#0000ff","#3300ff","#6600ff","#9900ff",
+  "#cc00ff","#ff00ff","#ff00cc","#ff0099","#ff0066","#ff0033","#f4cccc","#fce5cd","#fff2cc","#d9ead3","#d0e0e3","#c9daf8",
+  "#d9d2e9","#ead1dc","#cc0000","#e69138","#f1c232","#6aa84f","#45818e","#3c78d8","#674ea7","#a64d79"
+];
+const WORD_GRAY_COLORS=["#ffffff","#e7e6e6","#d0cece","#a6a6a6","#7f7f7f","#595959","#404040","#262626","#000000"];
+function wordColorButton(color,extraClass=""){
+  return `<button type="button" class="word-color-swatch ${extraClass}" data-word-color="${color}" style="--choice-color:${color}" aria-label="${color}" title="${color}"></button>`;
 }
-function attributedEffectiveLimits(analysis){
-  const result=new Map();
-  analysis.groups.forEach(group=>{const owner=group.members[0]?.cardProductId;if(!owner)return;const current=result.get(owner)||{total:0,inconsistencies:[]};current.total+=group.contribution;if(!group.consistent)current.inconsistencies.push(group);result.set(owner,current);});
-  return result;
-}
-function save(message="Đã lưu thay đổi",nextState=state){state=repo.save(nextState);repo.saveMeta({...repo.loadMeta(),status:auth.hasToken()?"dirty":"disconnected"});render();renderSyncStatus();toast(message);return state;}
-function toast(message){const el=$("#toast");el.textContent=message;el.classList.add("show");clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove("show"),2400);}
-function statusLabel(value){return value==="active"?"Đang hoạt động":value==="inactive"?"Ngừng hoạt động":value==="closed"?"Đã đóng":value==="expiring"?"Sắp hết hạn":value||"—";}
-function badge(value){return `<span class="badge ${value==="active"?"":"off"}">${esc(statusLabel(value))}</span>`;}
-function options(items,value,label,key="id"){return `<option value="">-- Chọn --</option>`+sortByLabel(items,label).map(x=>`<option value="${esc(x[key])}" ${x[key]===value?"selected":""}>${esc(label(x))}</option>`).join("");}
-function field(name,label,value="",type="text",required=false,extra=""){return `<div class="field"><label>${label}${required?" *":""}</label><input name="${name}" type="${type}" value="${esc(value)}" ${required?"required":""} ${extra}></div>`;}
-function selectField(name,label,html,required=false){return `<div class="field"><label>${label}${required?" *":""}</label><select name="${name}" ${required?"required":""}>${html}</select></div>`;}
-function noteField(value=""){return `<div class="field full"><label>Ghi chú</label><textarea name="notes">${esc(value)}</textarea></div>`;}
-function generateCustomerCode(){
-  const used=new Set(state.customers.map(x=>String(x.customerCode||"").trim().toUpperCase()).filter(Boolean));
-  let index=1,code="";
-  do{code=`KH-${String(index).padStart(4,"0")}`;index+=1;}while(used.has(code));
-  return code;
-}
-function dayOptions(value=""){return `<option value="">-- Chọn --</option>`+Array.from({length:31},(_,i)=>i+1).map(day=>`<option value="${day}" ${Number(value)===day?"selected":""}>Ngày ${day}</option>`).join("");}
-const CARD_FORMS=["Phi vật lý","Vật lý"];
-const ownershipTypeLabel=value=>value==="debit"?"Ghi nợ":"Tín dụng";
-const cardBrandValues=()=>[...new Set([...CARD_BRANDS,...state.cardProducts.flatMap(x=>[x.cardBrand,x.network]).map(normalizeCardBrand).filter(Boolean)])].sort(compareText);
-const cashbackCycleModeLabel=value=>value==="statement"?"Hoàn theo sao kê":"Hoàn theo tháng";
-const textValueOptions=(values,value,placeholder="-- Chọn --")=>`<option value="">${placeholder}</option>`+values.slice().sort(compareText).map(item=>`<option value="${esc(item)}" ${item===value?"selected":""}>${esc(item)}</option>`).join("");
-const rankOptions=value=>CARD_RANKS.map(item=>`<option value="${esc(item)}" ${item===value?"selected":""}>${esc(item)}</option>`).join("");
-const sortedCardProducts=()=>[...state.cardProducts].sort((a,b)=>compareCards(a,b,x=>bank(x.bankId)?.name||""));
-const sortedCardProductsById=()=>state.cardProducts.filter(card=>card?.id).sort(compareCardId);
-const bankOptions=value=>`<option value="">-- Chọn --</option>`+sortByLabel(state.banks,x=>x.name).map(x=>`<option value="${esc(x.id)}" ${x.id===value?"selected":""}>${esc(`${x.code} — ${x.name}`)}</option>`).join("");
-const customerOptions=value=>`<option value="">-- Chọn --</option>`+[...state.customers].sort(compareCustomers).map(x=>`<option value="${esc(x.id)}" ${x.id===value?"selected":""}>${esc(`${x.customerCode} — ${x.fullName}`)}</option>`).join("");
-function customerCardProductOptions(value=""){
-  return `<option value="">${state.cardProducts.length?"-- Chọn thẻ --":"Chưa có thẻ ngân hàng"}</option>`+sortedCardProductsById().map(p=>`<option value="${esc(p.id)}" ${p.id===value?"selected":""}>${esc(p.cardId||"")}</option>`).join("");
-}
-function customerCreditLimitOptions(){
-  const values=[...new Set(state.customerCards.map(x=>Number(x.creditLimit)||0).filter(x=>x>0))].sort((a,b)=>a-b);
-  return values.map(value=>`<option value="${esc(formatMoney(value))}"></option>`).join("");
-}
-function sharedLimitChip(productId){
-  const card=product(productId);return card?`<span class="shared-limit-chip" data-shared-chip="${esc(card.id)}"><span>${esc(card.cardId)}</span><button type="button" data-remove-shared-chip aria-label="Bỏ ${esc(card.cardId)}">×</button></span>`:"";
-}
-function sharedLimitControl(link={}){
-  const selected=[...new Set(link.sharedLimitCardIds||[])].filter(id=>product(id)&&id!==link.cardProductId).sort((a,b)=>compareCardId(product(a),product(b)));
-  return `<div class="shared-limit-shell"><div class="shared-limit-tags" data-shared-limit>${selected.map(sharedLimitChip).join("")}<input type="text" data-shared-search autocomplete="off" placeholder="Không / Tìm CardID..." aria-label="Tìm CardID chung hạn mức"></div><div class="shared-limit-suggestions" data-shared-suggestions hidden></div></div>`;
-}
-function customerCardRow(link={}){
-  return `<div class="customer-card-row" data-link-id="${esc(link.id||"")}">
-    <div class="customer-card-cell card-choice"><label>Thẻ</label><select data-card-product ${state.cardProducts.length?"":"disabled"}>${customerCardProductOptions(link.cardProductId||"")}</select></div>
-    <div class="customer-card-cell money-cell"><label>Hạn mức</label><input data-credit-limit type="text" inputmode="numeric" list="customerCreditLimitOptions" value="${esc(link.creditLimit!==undefined&&link.creditLimit!==""?formatVndInput(link.creditLimit):"")}" placeholder="0 đ"></div>
-    <div class="customer-card-cell statement-cell"><label>Ngày sao kê</label><select data-statement-day>${dayOptions(link.statementDay)}</select></div>
-    <div class="customer-card-cell payment-cell"><label>Hạn thanh toán</label><select data-payment-due-day>${dayOptions(link.paymentDueDay)}</select></div>
-    <div class="customer-card-cell shared-cell"><label>Chung hạn mức</label>${sharedLimitControl(link)}</div>
-    <button type="button" class="customer-card-remove" data-remove-customer-card aria-label="Xóa dòng thẻ" title="Xóa dòng thẻ">×</button>
+function colorPickerField(name,label,value){
+  const current=normalizeColor(value)||"#64748b";
+  const themeColumns=WORD_THEME_COLORS.map(column=>`<div class="word-theme-column">${column.map(color=>wordColorButton(color)).join("")}</div>`).join("");
+  return `<div class="field full word-color-field" data-word-color-picker>
+    <label>${esc(label)}</label>
+    <input type="hidden" name="${esc(name)}" value="${esc(current)}" data-word-color-value>
+    <button type="button" class="word-color-trigger" data-word-color-trigger><i style="--choice-color:${esc(current)}"></i><span>${esc(current)}</span><span class="word-color-caret">▾</span></button>
+    <div class="word-color-popover" data-word-color-popover>
+      <button type="button" class="word-automatic" data-word-color="#000000"><i style="--choice-color:#000000"></i><span>Tự động</span></button>
+      <div class="word-color-divider"></div>
+      <strong>Màu chủ đề</strong>
+      <div class="word-theme-grid">${themeColumns}</div>
+      <div class="word-color-divider"></div>
+      <strong>Màu tiêu chuẩn</strong>
+      <div class="word-standard-row">${WORD_STANDARD_COLORS.map(color=>wordColorButton(color)).join("")}</div>
+      <div class="word-color-divider"></div>
+      <button type="button" class="word-more-colors" data-word-more-colors>🎨 <span>Thêm màu...</span></button>
+    </div>
+    <div class="word-more-dialog" data-word-more-dialog aria-hidden="true">
+      <div class="word-more-card" role="dialog" aria-modal="true" aria-label="Màu sắc">
+        <div class="word-more-title"><strong>Màu sắc</strong><button type="button" class="word-more-close" data-word-more-cancel aria-label="Đóng">×</button></div>
+        <div class="word-more-content">
+          <div class="word-more-left">
+            <div class="word-color-tabs" role="tablist">
+              <button type="button" class="active" data-word-color-tab="standard">Tiêu chuẩn</button>
+              <button type="button" data-word-color-tab="custom">Tùy chỉnh</button>
+            </div>
+            <div class="word-tab-panel active" data-word-color-panel="standard">
+              <span class="word-panel-label">Màu:</span>
+              <div class="word-hex-palette">${WORD_MORE_COLORS.map(color=>wordColorButton(color,"hex")).join("")}</div>
+              <div class="word-gray-palette">${WORD_GRAY_COLORS.map(color=>wordColorButton(color,"hex gray")).join("")}</div>
+            </div>
+            <div class="word-tab-panel" data-word-color-panel="custom">
+              <span class="word-panel-label">Màu:</span>
+              <div class="word-native-color-wrap"><input type="color" value="${esc(current)}" data-word-native-color><span>Nhấp để chọn màu trực quan</span></div>
+              <div class="word-color-model-row"><label>Kiểu màu:</label><select disabled><option>RGB</option></select></div>
+              <div class="word-rgb-grid">
+                <label>Đỏ:<input type="number" min="0" max="255" data-word-rgb="r"></label>
+                <label>Lục:<input type="number" min="0" max="255" data-word-rgb="g"></label>
+                <label>Lam:<input type="number" min="0" max="255" data-word-rgb="b"></label>
+                <label>Hex:<input type="text" maxlength="7" data-word-hex></label>
+              </div>
+            </div>
+          </div>
+          <div class="word-more-actions">
+            <button type="button" class="primary" data-word-more-ok>OK</button>
+            <button type="button" class="secondary-btn" data-word-more-cancel>Hủy</button>
+            <div class="word-preview-label">Mới</div><div class="word-preview" data-word-preview="new" style="--choice-color:${esc(current)}"></div>
+            <div class="word-preview-label">Hiện tại</div><div class="word-preview" data-word-preview="current" style="--choice-color:${esc(current)}"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>`;
 }
-function customerCardsEditor(links=[]){
-  const sortedLinks=[...links].filter(link=>product(link.cardProductId)).sort((a,b)=>compareCustomerCardLinks(a,b,product,card=>bank(card?.bankId)?.name||"")),rows=sortedLinks.length?sortedLinks:[{}];
-  return `<div class="customer-card-editor full">
-    <div class="customer-card-title"><div><h3>Thẻ của khách hàng</h3><p>${state.cardProducts.length?"Gán nhiều thẻ và thiết lập hạn mức dùng chung.":"Chưa có thẻ ngân hàng. Có thể lưu khách hàng trước và tạo thẻ tại tab Thẻ ngân hàng."}</p></div></div>
-    <datalist id="customerCreditLimitOptions">${customerCreditLimitOptions()}</datalist>
-    <div class="customer-card-rows">${rows.map(customerCardRow).join("")}</div>
-    <div class="customer-card-add-line"><button type="button" class="customer-card-add" data-add-customer-card aria-label="Thêm một thẻ" title="Thêm một thẻ" ${state.cardProducts.length?"":"disabled"}>+</button></div>
-  </div>`;
+function hexToRgb(hex){
+  const safe=normalizeColor(hex);
+  if(!safe)return {r:100,g:116,b:139};
+  const value=parseInt(safe.slice(1),16);
+  return {r:(value>>16)&255,g:(value>>8)&255,b:value&255};
 }
-function bindCustomerCardEditor(root){
-  const rows=$(".customer-card-rows",root);
-  if(!rows)return;
-  const refreshChoices=()=>{
-    const selected=new Set($$("[data-card-product]",rows).map(x=>x.value).filter(Boolean));
-    $$(".customer-card-row",rows).forEach(row=>{
-      const current=$("[data-card-product]",row)?.value;
-      $$('[data-card-product] option',row).forEach(option=>{option.disabled=Boolean(option.value&&option.value!==current&&selected.has(option.value));});
-      $("[data-shared-limit]",row)?._refresh?.();
-    });
-  };
-  const bindSharedTagInput=row=>{
-    const control=$("[data-shared-limit]",row),input=$("[data-shared-search]",row),suggestions=$("[data-shared-suggestions]",row);if(!control||!input||!suggestions)return;
-    let activeIndex=-1;
-    const selectedIds=()=>new Set($$("[data-shared-chip]",control).map(chip=>chip.dataset.sharedChip));
-    const sortChips=()=>{$$("[data-shared-chip]",control).sort((a,b)=>compareCardId(product(a.dataset.sharedChip),product(b.dataset.sharedChip))).forEach(chip=>control.insertBefore(chip,input));};
-    const updatePlaceholder=()=>{input.placeholder=selectedIds().size?"Tìm thêm CardID...":"Không / Tìm CardID...";};
-    const bindChip=chip=>{$("[data-remove-shared-chip]",chip).onclick=()=>{chip.remove();updatePlaceholder();renderSuggestions();input.focus();};};
-    const addChip=id=>{if(!id||selectedIds().has(id)||id===$("[data-card-product]",row)?.value)return;const html=sharedLimitChip(id);if(!html)return;input.insertAdjacentHTML("beforebegin",html);bindChip(input.previousElementSibling);sortChips();input.value="";updatePlaceholder();renderSuggestions();input.focus();};
-    const removeChip=id=>{const chip=$$("[data-shared-chip]",control).find(item=>item.dataset.sharedChip===id);if(chip)chip.remove();updatePlaceholder();};
-    const renderSuggestions=()=>{
-      const query=normalize(input.value),current=$("[data-card-product]",row)?.value,selected=selectedIds();
-      const matches=state.cardProducts.filter(card=>card?.id&&card.id!==current&&!selected.has(card.id)&&(!query||normalize(card.cardId).includes(query))).sort(compareCardId);
-      activeIndex=-1;suggestions.innerHTML=matches.map(card=>`<button type="button" data-shared-suggestion="${esc(card.id)}">${esc(card.cardId)}</button>`).join("");
-      suggestions.hidden=!matches.length||document.activeElement!==input;
-      $$('[data-shared-suggestion]',suggestions).forEach(button=>button.onclick=()=>addChip(button.dataset.sharedSuggestion));
-    };
-    $$("[data-shared-chip]",control).forEach(bindChip);sortChips();
-    input.onfocus=renderSuggestions;input.oninput=renderSuggestions;input.onblur=()=>setTimeout(()=>{suggestions.hidden=true;},120);
-    input.onkeydown=event=>{
-      const choices=$$('[data-shared-suggestion]',suggestions);
-      if((event.key==="ArrowDown"||event.key==="ArrowUp")&&choices.length){event.preventDefault();activeIndex=(activeIndex+(event.key==="ArrowDown"?1:-1)+choices.length)%choices.length;choices.forEach((choice,index)=>choice.classList.toggle("active",index===activeIndex));}
-      else if(event.key==="Enter"&&activeIndex>=0){event.preventDefault();addChip(choices[activeIndex]?.dataset.sharedSuggestion);}
-      else if(event.key==="Escape")suggestions.hidden=true;
-      else if(event.key==="Backspace"&&!input.value){const chips=$$("[data-shared-chip]",control);if(chips.length){chips.at(-1).remove();updatePlaceholder();renderSuggestions();}}
-    };
-    control.onclick=event=>{if(event.target===control)input.focus();};control._refresh=renderSuggestions;control._remove=removeChip;updatePlaceholder();
-  };
-  const bindRow=row=>{
-    const money=$("[data-credit-limit]",row);
-    bindVndInput(money);
-    const cardSelect=$("[data-card-product]",row),statementSelect=$("[data-statement-day]",row),statementLabel=statementSelect?.closest(".statement-cell")?.querySelector("label"),refreshStatementRequirement=()=>{const config=customerCardCycleConfig({statementDay:statementSelect?.value},product(cardSelect?.value)||{});if(statementSelect)statementSelect.required=config.statementDayRequired;if(statementLabel)statementLabel.textContent=`Ngày sao kê${config.statementDayRequired?" *":""}`;};
-    if(cardSelect)cardSelect.onchange=()=>{
-      $("[data-shared-limit]",row)?._remove?.(cardSelect.value);
-      refreshChoices();refreshStatementRequirement();
-    };
-    statementSelect?.addEventListener("change",refreshStatementRequirement);refreshStatementRequirement();
-    bindSharedTagInput(row);
-    const remove=$("[data-remove-customer-card]",row);
-    if(remove)remove.onclick=()=>{
-      const all=$$(".customer-card-row",rows);
-      if(all.length===1){
-        $("[data-card-product]",row).value="";
-        $("[data-credit-limit]",row).value="";
-        $("[data-statement-day]",row).value="";
-        $("[data-payment-due-day]",row).value="";
-        $$("[data-shared-chip]",row).forEach(chip=>chip.remove());
-        $("[data-shared-search]",row).placeholder="Không / Tìm CardID...";
-        row.dataset.linkId="";
-      }else row.remove();
-      refreshChoices();
-    };
-  };
-  $$(".customer-card-row",rows).forEach(bindRow);
-  refreshChoices();
-  const addCardButton=$("[data-add-customer-card]",root);if(!addCardButton||addCardButton.disabled)return;addCardButton.onclick=()=>{
-    rows.insertAdjacentHTML("beforeend",customerCardRow());
-    const row=rows.lastElementChild;bindRow(row);
-    $("[data-card-product]",row)?.focus();
-    row.scrollIntoView({block:"nearest",behavior:"smooth"});
-    refreshChoices();
-  };
+function rgbToHex(r,g,b){
+  const clamp=value=>Math.max(0,Math.min(255,Number(value)||0));
+  return `#${[clamp(r),clamp(g),clamp(b)].map(value=>Math.round(value).toString(16).padStart(2,"0")).join("")}`;
 }
-function entityTable(headers,rows,entity,emptyMessage="Không có dữ liệu phù hợp.",hasFilters=false){
-  const headerHtml=headers.map((header,i)=>{
-    if(typeof header==="string")return `<th data-sort="${i}">${header}</th>`;
-    const attrs=Object.entries(header.attrs||{}).map(([key,value])=>` ${key}="${esc(value)}"`).join("");
-    return `<th${attrs}>${header.label}</th>`;
-  }).join("");
-  return rows.length?`<div class="table-wrap"><table class="mobile" data-entity="${entity}"><thead><tr>${headerHtml}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`:`<div class="empty">${esc(emptyMessage)}${hasFilters?'<br><button data-clear-filter>Xóa tìm kiếm và bộ lọc</button>':""}</div>`;
+let wordColorOutsideCleanup=()=>{};
+function bindColorPickers(root=document){
+  wordColorOutsideCleanup();
+  const cleanups=[];
+  root.querySelectorAll("[data-word-color-picker]").forEach(field=>{
+    const value=field.querySelector("[data-word-color-value]");
+    const trigger=field.querySelector("[data-word-color-trigger]");
+    const popover=field.querySelector("[data-word-color-popover]");
+    const moreDialog=field.querySelector("[data-word-more-dialog]");
+    const native=field.querySelector("[data-word-native-color]");
+    const hexInput=field.querySelector("[data-word-hex]");
+    const rgbInputs={r:field.querySelector('[data-word-rgb="r"]'),g:field.querySelector('[data-word-rgb="g"]'),b:field.querySelector('[data-word-rgb="b"]')};
+    let draft=normalizeColor(value.value)||"#64748b";
+    const setPreview=(selector,color)=>field.querySelector(selector)?.style.setProperty("--choice-color",color);
+    const syncCustomInputs=color=>{
+      const safe=normalizeColor(color)||"#64748b",rgb=hexToRgb(safe);
+      draft=safe;
+      if(native)native.value=safe;
+      if(hexInput)hexInput.value=safe;
+      if(rgbInputs.r)rgbInputs.r.value=rgb.r;
+      if(rgbInputs.g)rgbInputs.g.value=rgb.g;
+      if(rgbInputs.b)rgbInputs.b.value=rgb.b;
+      setPreview('[data-word-preview="new"]',safe);
+      field.querySelectorAll("[data-word-color]").forEach(button=>button.classList.toggle("selected",button.dataset.wordColor===safe));
+    };
+    const apply=color=>{
+      const safe=normalizeColor(color)||"#64748b";
+      value.value=safe;
+      trigger.querySelector("i").style.setProperty("--choice-color",safe);
+      trigger.querySelector("span:not(.word-color-caret)").textContent=safe;
+      setPreview('[data-word-preview="current"]',safe);
+      syncCustomInputs(safe);
+    };
+    const closePopover=()=>popover.classList.remove("open");
+    const closeMore=()=>{moreDialog.classList.remove("open");moreDialog.setAttribute("aria-hidden","true");};
+    trigger.addEventListener("click",event=>{event.stopPropagation();document.querySelectorAll(".word-color-popover.open").forEach(item=>item!==popover&&item.classList.remove("open"));popover.classList.toggle("open");});
+    popover.querySelectorAll("[data-word-color]").forEach(button=>button.addEventListener("click",()=>{apply(button.dataset.wordColor);closePopover();}));
+    field.querySelector("[data-word-more-colors]")?.addEventListener("click",()=>{closePopover();draft=value.value;syncCustomInputs(draft);setPreview('[data-word-preview="current"]',value.value);moreDialog.classList.add("open");moreDialog.setAttribute("aria-hidden","false");});
+    field.querySelectorAll("[data-word-color-tab]").forEach(button=>button.addEventListener("click",()=>{const tab=button.dataset.wordColorTab;field.querySelectorAll("[data-word-color-tab]").forEach(item=>item.classList.toggle("active",item===button));field.querySelectorAll("[data-word-color-panel]").forEach(panel=>panel.classList.toggle("active",panel.dataset.wordColorPanel===tab));}));
+    field.querySelectorAll(".word-more-dialog [data-word-color]").forEach(button=>button.addEventListener("click",()=>syncCustomInputs(button.dataset.wordColor)));
+    native?.addEventListener("input",()=>syncCustomInputs(native.value));
+    const syncFromRgb=()=>syncCustomInputs(rgbToHex(rgbInputs.r?.value,rgbInputs.g?.value,rgbInputs.b?.value));
+    Object.values(rgbInputs).forEach(input=>input?.addEventListener("input",syncFromRgb));
+    hexInput?.addEventListener("input",()=>{const raw=hexInput.value.trim();if(/^#[0-9a-f]{6}$/i.test(raw))syncCustomInputs(raw);});
+    field.querySelector("[data-word-more-ok]")?.addEventListener("click",()=>{apply(draft);closeMore();});
+    field.querySelectorAll("[data-word-more-cancel]").forEach(button=>button.addEventListener("click",closeMore));
+    const outside=event=>{if(popover.classList.contains("open")&&!field.contains(event.target))closePopover();};
+    document.addEventListener("pointerdown",outside);
+    cleanups.push(()=>document.removeEventListener("pointerdown",outside));
+    apply(value.value);
+  });
+  wordColorOutsideCleanup=()=>{cleanups.splice(0).forEach(cleanup=>cleanup());};
 }
-function cell(label,value){return `<td data-label="${label}">${value}</td>`;}
-let insuranceSearch="";
-function renderInsuranceLinks(){const root=$("#view-insurance-links");if(!root)return;const query=normalize(insuranceSearch),rows=INSURANCE_LINKS.filter(item=>!query||normalize(`${item.name} ${item.url}`).includes(query));root.innerHTML=`<div class="panel"><h2>Link Bảo Hiểm</h2><div class="insurance-toolbar"><input data-insurance-search placeholder="Tìm bảo hiểm hoặc link..." value="${esc(insuranceSearch)}"></div>${entityTable(["STT","Bảo hiểm","Link thanh toán","Mở link"],rows.map(item=>`<tr><td>${item.index}</td><td>${esc(item.name)}</td><td><span class="insurance-url" title="${esc(item.url)}">${esc(item.url)}</span><button type="button" class="icon-btn insurance-copy" data-copy-insurance="${esc(item.url)}" title="Sao chép link" aria-label="Sao chép link">${icon("copy")}</button></td><td><a class="icon-btn" href="${esc(item.url)}" target="_blank" rel="noopener noreferrer" title="Mở link" aria-label="Mở link">${icon("external")}</a></td></tr>`),"insurance-links","Chưa có link.")}</div>`;root.querySelector("[data-insurance-search]")?.addEventListener("input",e=>{insuranceSearch=e.target.value;renderInsuranceLinks();});root.querySelectorAll("[data-copy-insurance]").forEach(button=>button.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(button.dataset.copyInsurance);toast("Đã sao chép link");}catch{toast("Không thể sao chép link");}}));}
-
 function render(){removeCompactFilterOutsideListener();renderDashboard();renderCustomers();renderCards();renderOrderTypes();renderInsuranceLinks();renderSourceNames();renderCatalog();renderSystem();renderAbout();renderCashbackFeatures({state,getState:()=>state,save,uuid,toast});bindTables();bindHelpTabs();attachResizableTables();}
 function applyLoadedState(data){return applyHostBootstrapData(data,{applyState:value=>{state=value;},renderApp:()=>{render();renderSyncStatus();}});}
 function renderDashboard(){
@@ -279,8 +264,6 @@ function compareCardsWithinBank(left,right,sort){
   return primary||compareCardId(left,right)||compareText(left.cardName,right.cardName);
 }
 function sortVisibleCardRows(items){
-  const sort=sorts.cards||{key:"bank",direction:"asc"};
-  const bankDirection=sort.key==="bank"?sort.direction:"asc";
   const groups=new Map();
   items.forEach(card=>{
     const key=card.bankId||`name:${cardBankName(card)}`;
@@ -288,14 +271,13 @@ function sortVisibleCardRows(items){
     groups.get(key).rows.push(card);
   });
   return [...groups.values()]
-    .sort((left,right)=>(bankDirection==="desc"?-1:1)*compareText(left.bankName,right.bankName)||compareText(left.key,right.key))
-    .flatMap(group=>group.rows.sort((left,right)=>compareCardsWithinBank(left,right,sort)));
+    .sort((left,right)=>compareText(left.bankName,right.bankName)||compareText(left.key,right.key))
+    .flatMap(group=>group.rows.sort((left,right)=>compareCardId(left,right)||compareText(left.cardName,right.cardName)));
 }
 function cardTableHeaders(){
-  const active=sorts.cards||{key:"bank",direction:"asc"};
   return cardTableColumns.map(column=>({
-    label:`${esc(column.label)}${active.key===column.key?` <span aria-hidden="true">${active.direction==="asc"?"▲":"▼"}</span>`:""}`,
-    attrs:{"data-card-sort":column.key,"data-column-key":column.key,"aria-sort":active.key===column.key?(active.direction==="asc"?"ascending":"descending"):"none"}
+    label:esc(column.label),
+    attrs:{"data-column-key":column.key}
   }));
 }
 function renderCards(){
@@ -373,7 +355,6 @@ function bindTables(){
   $$('[data-compact-clear]').forEach(button=>button.onclick=()=>{const group=button.dataset.compactClear,q=filters[group]?.q||"";filters[group]={q};removeCompactFilterOutsideListener();group==="customers"?renderCustomers():renderCards();bindTables();});
   $$('[data-clear-filter]').forEach(el=>el.onclick=()=>{filters[currentView]={};render();});
   $$('table[data-entity] tr[data-id]').forEach(row=>{if(row.closest("table")?.dataset.featureTable)return;const selectRow=()=>{const table=row.closest("table");$$('tr.selected',table).forEach(x=>x.classList.remove("selected"));row.classList.add("selected");};row.onclick=event=>{if(event.target.closest('[data-responsive-toggle]'))return;selectRow();};row.ondblclick=()=>openDetail(row.closest("table").dataset.entity,row.dataset.id);row.oncontextmenu=e=>{e.preventDefault();selectRow();openContext(e,row.closest("table").dataset.entity,row.dataset.id);};});
-  $$('th[data-card-sort]').forEach(th=>{watchTableResizePointer(th);th.onclick=event=>{if(isTableResizeClick(event,th))return;const key=th.dataset.cardSort,current=sorts.cards||{key:"bank",direction:"asc"},direction=current.key===key&&current.direction==="asc"?"desc":"asc";sorts.cards={key,direction};renderCards();bindTables();attachResizableTables();};});
   $$('th[data-sort]').forEach(th=>{watchTableResizePointer(th);th.onclick=event=>{if(isTableResizeClick(event,th))return;const table=th.closest("table"),body=$("tbody",table),index=Number(th.dataset.sort),direction=th.dataset.direction==="asc"?"desc":"asc";$$('th[data-sort]',table).forEach(x=>{delete x.dataset.direction;});th.dataset.direction=direction;const rows=$$('tr',body).sort((a,b)=>{const left=$("td:nth-child("+(index+1)+")",a)?.innerText.trim()||"",right=$("td:nth-child("+(index+1)+")",b)?.innerText.trim()||"";const ln=Number(left.replace(/\D/g,"")),rn=Number(right.replace(/\D/g,"")),result=left&&right&&Number.isFinite(ln)&&Number.isFinite(rn)&&/\d/.test(left)&&/\d/.test(right)?ln-rn:left.localeCompare(right,"vi",{sensitivity:"base"});return direction==="asc"?result:-result;});rows.forEach(row=>body.append(row));};});
   $$('[data-add]').forEach(x=>x.onclick=()=>openForm(x.dataset.add));$$('[data-edit-selected]').forEach(x=>x.onclick=()=>selectedAction(x.dataset.editSelected,"edit"));$$('[data-delete-selected]').forEach(x=>x.onclick=()=>selectedAction(x.dataset.deleteSelected,"delete"));
   $('[data-card-cycle-guide]')?.addEventListener("click",openCardCycleGuide);
