@@ -9,7 +9,7 @@ import {join,resolve,extname} from 'node:path';
 const chrome=process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const enabled=process.env.MATRIX_BROWSER_TEST==='1';
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-test('matrix browser: frozen columns, responsive, filters and green/yellow/red workflows',{skip:!enabled||!existsSync(chrome),timeout:60000},async()=>{
+test('matrix browser: frozen columns, responsive, filters and status workflows',{skip:!enabled||!existsSync(chrome),timeout:60000},async()=>{
  const workspace=resolve('.'),profile=mkdtempSync(join(tmpdir(),'cardflow-matrix-')),errors=[];
  const fixture=`<!doctype html><html lang="vi"><meta charset="utf-8"><link rel="stylesheet" href="/styles.css"><body><main style="padding:16px"><button data-view="transactions">Giao Dịch</button><section id="view-mcc" hidden></section><section id="view-programs" hidden></section><section id="view-transactions" hidden></section><section id="view-coordination"></section><div id="contextMenu" hidden></div></main><script type="module">
  import {canonicalize} from '/services/local-repository.js';
@@ -51,6 +51,8 @@ test('matrix browser: frozen columns, responsive, filters and green/yellow/red w
   assert.equal(await evaluate("document.querySelector('.matrix-scroll .AVAILABLE').textContent"),'0');
   assert.equal(await evaluate("document.querySelector('.matrix-scroll .IN_PROGRESS').textContent"),'1.5tr/4tr');
   assert.equal(await evaluate("document.querySelector('.matrix-scroll .COMPLETED').textContent"),'4tr/4tr');
+  assert.deepEqual(await evaluate("['AVAILABLE','IN_PROGRESS','COMPLETED'].map(status=>getComputedStyle(document.querySelector(`.matrix-scroll .${status}`)).backgroundColor)"),['rgb(251, 224, 226)','rgb(255, 241, 194)','rgb(220, 245, 229)']);
+  assert.deepEqual(await evaluate("[...document.querySelectorAll('.matrix-legend span')].map(node=>node.textContent)"),['Đỏ - Chưa đánh','Vàng - Đang đánh','Xanh - Đã đủ chỉ tiêu']);
   assert.ok(await evaluate("document.querySelector('.matrix-scroll .IN_PROGRESS').getAttribute('aria-label').includes('Nguyễn Văn Trí')"));
   assert.ok(await evaluate("document.querySelector('.matrix-scroll').scrollLeft>0"),'matrix must scroll inside its own container');
   assert.ok(await evaluate('document.documentElement.scrollWidth<=innerWidth'),'desktop document must not overflow');
@@ -92,6 +94,7 @@ test('matrix browser: frozen columns, responsive, filters and green/yellow/red w
    assert.equal(await evaluate("getComputedStyle(document.querySelector('.matrix-stacked')).display!=='none'"),stacked);
    assert.ok(await evaluate('document.documentElement.scrollWidth<=innerWidth'),`overflow at ${width}`);
   }
+  assert.deepEqual(await evaluate("['AVAILABLE','IN_PROGRESS','COMPLETED'].map(status=>getComputedStyle(document.querySelector(`.matrix-stacked .${status}`)).backgroundColor)"),['rgb(251, 224, 226)','rgb(255, 241, 194)','rgb(220, 245, 229)']);
   if(process.env.MATRIX_SCREENSHOT_DIR){await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});await evaluate("document.querySelector('.matrix-scroll').scrollLeft=99999");const shot=await send('Page.captureScreenshot',{format:'png'});writeFileSync(join(process.env.MATRIX_SCREENSHOT_DIR,'matrix-desktop.png'),Buffer.from(shot.data,'base64'));await send('Emulation.setDeviceMetricsOverride',{width:1024,height:768,deviceScaleFactor:1,mobile:false});await evaluate("document.querySelector('.matrix-scroll').scrollLeft=99999");const mobile=await send('Page.captureScreenshot',{format:'png'});writeFileSync(join(process.env.MATRIX_SCREENSHOT_DIR,'matrix-tablet.png'),Buffer.from(mobile.data,'base64'));}
   assert.deepEqual(errors,[]);
  }finally{socket?.close();child.kill();await new Promise(resolve=>server.close(resolve));assert.ok(resolve(profile).startsWith(resolve(tmpdir())+requireSeparator()+'cardflow-matrix-'));for(let i=0;i<20;i++){try{rmSync(profile,{recursive:true,force:true});break;}catch{await pause(100);}}}
