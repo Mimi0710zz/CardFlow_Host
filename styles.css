@@ -608,3 +608,27 @@ table[data-feature-table="transaction-cashflow"] td:nth-child(13){text-align:cen
   top:0!important;
   z-index:5!important;
 }
+
+/* 2026-09-07: Coordination matrix customer pagination + page status summary */
+.matrix-page-nav{display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin:4px 0 7px;font-size:12px}
+.matrix-page-nav>span{font-weight:600;color:#475569;margin-right:2px}
+.matrix-page-nav button,.matrix-summary-page{min-width:30px;height:28px;padding:3px 8px;border:1px solid var(--border,#dce2eb);border-radius:6px;background:#fff;color:inherit;font-size:11px;font-weight:600;cursor:pointer}
+.matrix-page-nav button:hover,.matrix-summary-page:hover{background:#f1f5f9}
+.matrix-page-nav button.active,.matrix-summary-page.active{border-color:#577aa8;background:#e8f0fa;color:#173f70;box-shadow:inset 0 0 0 1px #577aa8}
+.matrix-page-summary{max-width:100%;margin:0 0 8px;border:1px solid var(--border,#dce2eb);border-radius:8px;background:var(--panel,#fff);overflow:hidden}
+.matrix-page-summary-scroll{max-width:100%;overflow-x:auto}
+.matrix-page-summary table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-size:11px;table-layout:fixed}
+.matrix-page-summary th,.matrix-page-summary td{height:30px;padding:2px;border-right:1px solid #e4e8ee;border-bottom:1px solid #e4e8ee;text-align:center;white-space:nowrap}
+.matrix-page-summary tr:last-child>*{border-bottom:0}.matrix-page-summary tr>*:last-child{border-right:0}
+.matrix-page-summary thead th{background:#f0f3f8;font-weight:700}
+.matrix-page-summary th:first-child{position:sticky;left:0;z-index:3;width:126px;min-width:126px;max-width:126px;text-align:left;padding-left:8px;background:#f8fafc}
+.matrix-page-summary thead th:first-child{z-index:4;background:#f0f3f8}
+.matrix-page-summary th:not(:first-child),.matrix-page-summary td{width:68px;min-width:68px;max-width:68px}
+.matrix-summary-page{width:100%;height:25px;min-width:0;padding:2px 5px;border-color:transparent;background:transparent}
+.matrix-summary-cell{display:block;width:100%;height:25px;padding:2px 5px;border:1px solid transparent;border-radius:5px;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;cursor:pointer}
+.matrix-summary-cell.AVAILABLE{background:var(--matrix-available-bg);color:var(--matrix-available-fg)}
+.matrix-summary-cell.IN_PROGRESS{background:var(--matrix-progress-bg);color:var(--matrix-progress-fg)}
+.matrix-summary-cell.COMPLETED{background:var(--matrix-completed-bg);color:var(--matrix-completed-fg)}
+.matrix-summary-cell:hover{filter:brightness(.97);border-color:#94a3b8}
+.matrix-summary-cell.current-page{outline:2px solid #577aa8;outline-offset:-2px}
+@media(max-width:767px),(max-width:1024px) and (orientation:portrait){.matrix-page-summary th:first-child{width:118px;min-width:118px;max-width:118px}.matrix-page-nav{margin-top:2px}.matrix-page-summary{margin-bottom:6px}}

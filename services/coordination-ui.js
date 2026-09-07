@@ -1,4 +1,4 @@
-import {mountMatrix} from './matrix-ui.js?v=20260907-bank-card-merge-v1';
+import {mountMatrix} from './matrix-ui.js?v=20260907-matrix-pagination-v1';
 import {formatMoney,parseMoney,bindVndInput} from "./money.js";
 import {formatDate} from "./date.js";
 import {buildCoordinationRows,buildCoordinationRowsForSelection,recommendOrders} from "./order-coordination.js?v=20260901-statement-day-owner-v1";
