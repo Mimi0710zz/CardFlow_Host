@@ -4,7 +4,7 @@ import {formatDate} from "./date.js";
 import {calculateTransactionAmounts,formatPercent,parsePercent} from "./transaction-calculations.js";
 import {normalizeColor} from "./local-repository.js?v=20260903-transaction-workflow-v1";
 import {buildCoordinationRows,recommendOrders} from "./order-coordination.js?v=20260901-statement-day-owner-v1";
-import {renderCoordinationWorkspace} from "./coordination-ui.js?v=20260907-matrix-pagination-v1";
+import {renderCoordinationWorkspace} from "./coordination-ui.js?v=20260907-matrix-summary-resize-v2";
 import {getProgramPriority,getMccSelectionMode,isMccCategoryEligible,normalizeCashbackConditions} from "./cashback-program.js?v=20260905-cashback-conditions-v1";
 import {applyExclusiveProgramSelection,exclusiveProgramOptions,selectedExclusiveProgramIds,validateExclusiveProgram} from "./cashback-exclusive.js?v=20260901-exclusive-multiselect-v1";
 import {openCashbackProgramEditor} from "./cashback-program-editor.js?v=20260907-program-crud-live-state-v1";
