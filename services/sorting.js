@@ -25,3 +25,8 @@ export function buildSortedCustomerCardRows(links=[],cardProducts=[],banks=[]){
 
 export const compareCustomers = (left, right) =>
   compareText(left?.fullName, right?.fullName) || compareText(left?.customerCode, right?.customerCode);
+
+export const compareCustomerCode = (left, right) =>
+  compareText(left?.customerCode, right?.customerCode) ||
+  compareText(left?.fullName, right?.fullName) ||
+  compareText(left?.id, right?.id);

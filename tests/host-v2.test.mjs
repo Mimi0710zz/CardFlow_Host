@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {canonicalize} from "../services/local-repository.js";
 import {createEmptyData} from "../services/default-data.js";
 import {formatVndInput, parseMoney} from "../services/money.js";
-import {compareCards,compareCardId,compareCustomerCardLinks,buildSortedCustomerCardRows,compareCustomers,compareText} from "../services/sorting.js";
+import {compareCards,compareCardId,compareCustomerCardLinks,buildSortedCustomerCardRows,compareCustomers,compareCustomerCode,compareText} from "../services/sorting.js";
 import {SyncService} from "../services/sync-service.js";
 import {CARD_BRANDS,normalizeCardBrand} from "../services/card-types.js";
 
@@ -37,6 +37,8 @@ assert.equal(formatVndInput("10000000"),"10.000.000 đ");
 assert.equal(parseMoney("10.000.000 đ"),10_000_000);
 assert.deepEqual(["Visa","JCB","American Express"].sort(compareText),["American Express","JCB","Visa"]);
 assert.deepEqual([{fullName:"B",customerCode:"2"},{fullName:"A",customerCode:"3"},{fullName:"A",customerCode:"1"}].sort(compareCustomers).map(x=>x.customerCode),["1","3","2"]);
+assert.deepEqual([{customerCode:"10"},{customerCode:"2"},{customerCode:"1"}].sort(compareCustomerCode).map(x=>x.customerCode),["1","2","10"]);
+assert.deepEqual([{customerCode:"KH20"},{customerCode:"KH2"},{customerCode:"KH10"},{customerCode:"KH1"}].sort(compareCustomerCode).map(x=>x.customerCode),["KH1","KH2","KH10","KH20"]);
 const bankNames={a:"Z Bank",b:"A Bank"};
 assert.deepEqual([{bankId:"a",cardName:"A",cardId:"1"},{bankId:"b",cardName:"Z",cardId:"2"}].sort((a,b)=>compareCards(a,b,x=>bankNames[x.bankId])).map(x=>x.cardId),["2","1"]);
 const randomCards=[{id:"6",cardId:"TCB-EVERYDAY"},{id:"2",cardId:"MB-SIGNATURE"},{id:"5",cardId:"SACOM-CASHBACK"},{id:"1",cardId:"MB-MASTER-PLATINUM"},{id:"4",cardId:"SACOM-AMEX"},{id:"3",cardId:"MB-ULTIMATE"}];
