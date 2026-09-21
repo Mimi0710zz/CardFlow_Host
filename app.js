@@ -13,6 +13,7 @@ import {customerCardCycleConfig} from "./services/cashback-cycle.js?v=20260901-s
 import {currentHostGuideItems,currentAboutIntroduction} from "./services/about-guide-content.js?v=20260901-about-guide-latest-v1";
 import {INSURANCE_LINKS} from "./services/insurance-links.js";
 import {attachResizableTables} from "./services/table-resize.js";
+import {HOST_EXPORTABLE_SHEETS,HOST_IMPORTABLE_SHEETS,exportHostSheetRows,previewHostImport,applyHostImportRows} from "./services/host-excel.js?v=20260921-host-excel-v1";
 
 const $=(selector,root=document)=>root.querySelector(selector), $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
 const repo=new LocalRepository(); let state=repo.load(), currentView="dashboard", filters={}, sorts={}, pendingRemote=null;
@@ -625,6 +626,54 @@ async function importExcel(file){if(!file||!window.XLSX)return;const wb=XLSX.rea
   state.customers.push(...newCustomers);state.cardProducts.push(...newProducts);state.customerCards.push(...newLinks);save("Đã hoàn tất nhập Excel");const total=customers.length+products.length+links.length,success=newCustomers.length+newProducts.length+newLinks.length;const result=$("#importResult");if(result)result.innerHTML=`<div class="import-result"><p><strong>Tổng:</strong> ${total} · <strong>Thành công:</strong> ${success} · <strong>Bỏ qua:</strong> ${errors.length}</p>${errors.length?`<div class="error-list">${errors.map(x=>`<div>${esc(x)}</div>`).join("")}</div>`:"<p>Không có lỗi.</p>"}</div>`;}
 function exportJson(){const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`cardflow-host-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href);}
 
+function autoExcelWidths(rows){
+  if(!rows?.length)return [];
+  const headers=Object.keys(rows[0]);
+  return headers.map(header=>({wch:Math.min(48,Math.max(10,String(header).length+2,...rows.slice(0,200).map(row=>String(row?.[header]??"").length+2)))}));
+}
+function closeExcelModal(modal){modal?.remove();}
+function ensureExportExcelModal(){
+  document.querySelector("#hostExportExcelModal")?.remove();
+  const modal=document.createElement("div");modal.id="hostExportExcelModal";modal.className="excel-modal";
+  modal.innerHTML=`<section class="excel-modal-card" role="dialog" aria-modal="true" aria-labelledby="hostExportExcelTitle"><div><h2 id="hostExportExcelTitle">Xuất Excel</h2><small>Chọn các tab muốn xuất thành sheet Excel</small></div><div class="excel-modal-actions-top"><button type="button" class="secondary-btn" data-excel-select-all>Chọn tất cả</button><button type="button" class="secondary-btn" data-excel-clear-all>Bỏ chọn</button></div><div class="excel-options">${HOST_EXPORTABLE_SHEETS.map(item=>`<label class="excel-option"><input type="checkbox" value="${esc(item.key)}" checked><span>${esc(item.label)}</span></label>`).join("")}</div><div class="modal-actions"><button type="button" class="secondary-btn" data-excel-cancel>Huỷ</button><button type="button" class="primary" data-excel-export>Xuất Excel</button></div></section>`;
+  document.body.appendChild(modal);
+  modal.querySelector("[data-excel-select-all]").onclick=()=>modal.querySelectorAll('.excel-options input[type="checkbox"]').forEach(box=>box.checked=true);
+  modal.querySelector("[data-excel-clear-all]").onclick=()=>modal.querySelectorAll('.excel-options input[type="checkbox"]').forEach(box=>box.checked=false);
+  modal.querySelector("[data-excel-cancel]").onclick=()=>closeExcelModal(modal);
+  modal.addEventListener("click",event=>{if(event.target===modal)closeExcelModal(modal);});
+  modal.querySelector("[data-excel-export]").onclick=()=>{
+    if(!window.XLSX)return toast("Chưa tải được thư viện Excel");
+    const keys=[...modal.querySelectorAll('.excel-options input[type="checkbox"]:checked')].map(box=>box.value);
+    if(!keys.length)return toast("Hãy chọn ít nhất một tab để xuất");
+    const wb=XLSX.utils.book_new();
+    keys.forEach(key=>{const def=HOST_EXPORTABLE_SHEETS.find(item=>item.key===key);if(!def)return;const rows=exportHostSheetRows(state,key),sheet=XLSX.utils.json_to_sheet(rows.length?rows:[{}]);sheet["!cols"]=autoExcelWidths(rows);XLSX.utils.book_append_sheet(wb,sheet,def.sheetName.slice(0,31));});
+    XLSX.writeFile(wb,`CardFlow_Host_Export_${new Date().toISOString().slice(0,10).replaceAll("-","")}.xlsx`);closeExcelModal(modal);
+  };
+  return modal;
+}
+let pendingHostImportMode="upsert";
+function ensureImportExcelModeModal(){
+  document.querySelector("#hostImportExcelModal")?.remove();
+  const modal=document.createElement("div");modal.id="hostImportExcelModal";modal.className="excel-modal";
+  modal.innerHTML=`<section class="excel-modal-card" role="dialog" aria-modal="true" aria-labelledby="hostImportExcelTitle"><div><h2 id="hostImportExcelTitle">Import Excel</h2><small>Chọn cách áp dụng dữ liệu từ Excel</small></div><div class="excel-modes"><label class="excel-mode-option"><input type="radio" name="hostImportMode" value="update"><span><strong>Cập nhật dòng cũ theo Excel</strong><small>Chỉ cập nhật dữ liệu đã tồn tại, không thêm mới.</small></span></label><label class="excel-mode-option"><input type="radio" name="hostImportMode" value="upsert" checked><span><strong>Tự thêm mới</strong><small>Cập nhật dòng cũ và tự thêm dữ liệu chưa có.</small></span></label><label class="excel-mode-option"><input type="radio" name="hostImportMode" value="master"><span><strong>Excel là master</strong><small>Cập nhật, thêm mới và xóa dữ liệu không còn trong các sheet được import.</small></span></label></div><div class="modal-actions"><button type="button" class="secondary-btn" data-excel-cancel>Huỷ</button><button type="button" class="primary" data-excel-choose-file>Chọn file Excel</button></div></section>`;
+  document.body.appendChild(modal);modal.querySelector("[data-excel-cancel]").onclick=()=>closeExcelModal(modal);modal.addEventListener("click",event=>{if(event.target===modal)closeExcelModal(modal);});modal.querySelector("[data-excel-choose-file]").onclick=()=>{pendingHostImportMode=modal.querySelector('input[name="hostImportMode"]:checked')?.value||"upsert";closeExcelModal(modal);$("#importExcelFile")?.click();};
+  return modal;
+}
+function workbookRowsForHostImport(workbook){
+  const result={};
+  HOST_IMPORTABLE_SHEETS.forEach(def=>{const sheet=workbook.Sheets?.[def.sheetName];if(!sheet)return;result[def.sheetName]=XLSX.utils.sheet_to_json(sheet,{defval:"",raw:false}).filter(row=>Object.values(row).some(value=>String(value??"").trim()));});
+  return result;
+}
+async function importHostExcelFile(file){
+  if(!file||!window.XLSX)return;
+  const workbook=XLSX.read(await file.arrayBuffer(),{type:"array",cellDates:true}),rows=workbookRowsForHostImport(workbook),sheetNames=Object.keys(rows);
+  if(!sheetNames.length)return toast("File Excel không có sheet Host được hỗ trợ");
+  const preview=previewHostImport(state,rows,pendingHostImportMode),modeLabel={update:"Cập nhật dòng cũ theo Excel",upsert:"Tự thêm mới",master:"Excel là master"}[pendingHostImportMode]||pendingHostImportMode;
+  const message=[`Chế độ: ${modeLabel}`,`Sheet: ${sheetNames.join(", ")}`,`Cập nhật: ${preview.updated}`,`Thêm mới: ${preview.added}`,`Xóa: ${preview.deleted}`,"",pendingHostImportMode==="master"&&preview.deleted?"Excel là master sẽ xóa dữ liệu không còn trong các sheet trên. Tiếp tục?":"Áp dụng dữ liệu Excel?"].join("\n");
+  if(!confirm(message))return;
+  const next=applyHostImportRows(state,rows,pendingHostImportMode);save("Đã import Excel",next);
+}
+
 function setSidebarOpen(open){
   document.querySelector(".app-shell")?.classList.toggle("sidebar-open",open);
   document.querySelector(".menu-toggle")?.setAttribute("aria-expanded",String(open));
@@ -731,6 +780,9 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape')setSidebarOpen(false);});
 $('#excelFile').onchange=e=>{importExcel(e.target.files[0]).catch(err=>toast(`Không thể đọc Excel: ${err.message}`));e.target.value='';};
+$('#importExcel').onclick=()=>ensureImportExcelModeModal();
+$('#exportExcel').onclick=()=>ensureExportExcelModal();
+$('#importExcelFile').onchange=e=>{const file=e.target.files?.[0];e.target.value='';importHostExcelFile(file).catch(err=>toast(`Không thể import Excel: ${err.message}`));};
 $('#gateConnectDrive').onclick=()=>connectGoogleDriveFromUi();
 $('#connectDrive').onclick=()=>connectGoogleDriveFromUi();
 $('#syncDrive').onclick=()=>sync.syncNow().then(()=>{applyLoadedState(repo.load());toast('Đã đồng bộ');}).catch(e=>toast(`Đồng bộ lỗi: ${e.message}`));
