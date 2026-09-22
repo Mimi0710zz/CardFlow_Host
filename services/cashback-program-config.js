@@ -156,7 +156,8 @@ function optionMarkup(options,selected,escape){
 }
 
 function moneyInputMarkup({attribute,value,escape,disabled=false,readonly=false,ariaLabel="",placeholder=""}){
-  return `<div class="money-input cashback-money-input"><input ${attribute} inputmode="numeric" value="${escape(value??"")}" ${disabled?"disabled":""} ${readonly?"readonly":""} ${ariaLabel?`aria-label="${escape(ariaLabel)}"`:""} ${placeholder?`placeholder="${escape(placeholder)}"`:""}><span>đ</span></div>`;
+  const numericText=String(value??"").replace(/\s*đ\s*$/u,"");
+  return `<div class="money-input cashback-money-input"><input ${attribute} inputmode="numeric" value="${escape(numericText)}" ${disabled?"disabled":""} ${readonly?"readonly":""} ${ariaLabel?`aria-label="${escape(ariaLabel)}"`:""} ${placeholder?`placeholder="${escape(placeholder)}"`:""}><span>đ</span></div>`;
 }
 
 function cashbackRateInputMarkup(condition,escape){
