@@ -31,28 +31,18 @@ function refs(state={}){
 
 function programRows(state){
   const {products,mcc}=refs(state);
+  const spendToMax=(rate,max)=>{const r=Number(rate)||0,m=Number(max)||0;return r>0&&m>0?Math.round(m/(r/100)):"";};
+  const conditionRow=(program,condition,{packageId="",packageName="",groupId="",groupName="",index=0}={})=>{
+    const product=products.get(program.cardProductId||program.bankCardProductId),all=condition.allMcc===true||condition.mccSelectionMode==="all",ids=all?[]:[...new Set(condition.mccCategoryIds||condition.mccIds||[])],selected=ids.map(id=>mcc.get(id)).filter(Boolean),unlimited=condition.maxCashbackUnlimited===true||condition.maxType==="UNLIMITED",max=unlimited?null:Number(condition.max??condition.maxCashback??condition.maxAmount)||0,rate=Number(condition.rate)||0,total=program.totalSpendMinimum??program.totalTarget??program.totalSpendCondition?.amount??"",eligible=condition.eligibleSpendMinimum??condition.eligibleTarget??condition.minSpend??"",method=(condition.channel??condition.transactionMethod??"")||"Tất cả",conditionId=condition.id||`${program.id||"PROGRAM"}-COND-${index+1}`,conditionName=condition.name||`Điều kiện ${index+1}`,mccNames=all?"Tất cả":selected.map(x=>x.name).join(", "),mccCodes=all?"Tất cả":[...new Set(selected.flatMap(x=>x.codes||[]))].join(", ");
+    return {
+      ProgramID:program.id||"",CardID:product?.cardId||"",ProgramName:program.name||"",ConditionMode:program.conditionMode||"independent",ProgramTotalSpendMinimum:total,PackageID:packageId,PackageName:packageName,GroupID:groupId,GroupName:groupName,ConditionID:conditionId,ConditionName:conditionName,MCC:mccNames,TransactionMethod:method,RatePercent:rate,MaxType:unlimited?"UNLIMITED":"LIMITED",MaxCashback:unlimited?"":max,SpendToMax:unlimited?"":spendToMax(rate,max),ConditionSpendMinimum:eligible,Note:condition.note||program.notes||"",Status:program.status||"active",
+      "Program ID":program.id||"","Card ID":product?.cardId||"","Tên chương trình":program.name||"","Điều kiện kết hợp":program.combineOperator||"OR","Chi tiêu tổng":total,"Condition ID":conditionId,"Điều kiện":conditionName,"% Cashback":rate,"Max Cashback":unlimited?"Không giới hạn":max,"Chi để Max":eligible,"Hình thức giao dịch":method,"Nhóm MCC":mccNames,"Mã MCC":mccCodes,"Trạng thái":program.status==="inactive"?"Ngừng":"Hoạt động","Ghi chú":condition.note||program.notes||""
+    };
+  };
   return (state.cashbackPrograms||[]).flatMap(program=>{
-    const product=products.get(program.bankCardProductId),conditions=Array.isArray(program.conditions)&&program.conditions.length?program.conditions:[program];
-    return conditions.map((condition,index)=>{
-      const all=condition.allMcc===true||condition.mccSelectionMode==="all"||(index===0&&program.mccSelectionMode==="all"),ids=all?[]:[...new Set(condition.mccCategoryIds||program.mccCategoryIds||[])],selected=ids.map(id=>mcc.get(id)).filter(Boolean),unlimited=condition.maxCashbackUnlimited===true||condition.maxType==="UNLIMITED",max=unlimited?"Không giới hạn":Number(condition.maxCashback??condition.max??program.maxCashback)||0,target=Number(condition.eligibleTarget??condition.minSpend??condition.eligibleSpendMinimum??program.eligibleTarget)||0;
-      return {
-        "Program ID":program.id||"",
-        "Card ID":product?.cardId||"",
-        "Tên chương trình":program.name||"",
-        "Điều kiện kết hợp":program.combineOperator||"AND",
-        "Chi tiêu tổng":program.totalTarget??program.totalSpendCondition?.amount??"",
-        "Condition ID":condition.id||`${program.id||"PROGRAM"}-COND-${index+1}`,
-        "Điều kiện":`Điều kiện ${index+1}`,
-        "% Cashback":Number(condition.rate??program.rate)||0,
-        "Max Cashback":max,
-        "Chi để Max":target,
-        "Hình thức giao dịch":(condition.transactionMethod??condition.channel??program.transactionMethod??"Tất cả")||"Tất cả",
-        "Nhóm MCC":all?"Tất cả":selected.map(x=>x.name).join(", "),
-        "Mã MCC":all?"Tất cả":[...new Set(selected.flatMap(x=>x.codes||[]))].join(", "),
-        "Trạng thái":program.status==="inactive"?"Ngừng":"Hoạt động",
-        "Ghi chú":program.notes||""
-      };
-    });
+    if(Array.isArray(program.packages)&&program.packages.length)return program.packages.flatMap(pkg=>(pkg.groups||[]).flatMap((group,gIndex)=>(group.conditions||[]).map((condition,index)=>conditionRow(program,condition,{packageId:pkg.id||"",packageName:pkg.name||"",groupId:group.id||`${program.id}-GROUP-${gIndex+1}`,groupName:group.name||"",index}))));
+    const conditions=Array.isArray(program.conditions)&&program.conditions.length?program.conditions:[program];
+    return conditions.map((condition,index)=>conditionRow(program,condition,{index}));
   });
 }
 export function exportHostSheetRows(state={},sheetKey){
@@ -86,9 +76,17 @@ function parseRowsForCollection(collection,rows,state){
   if(collection==="orderTypes")return rows.map(r=>({code:text(r["Mã loại đơn"]).toUpperCase(),color:text(r["Màu"]),description:text(r["Mô tả"]),note:text(r["Ghi chú"])})).filter(x=>x.code);
   if(collection==="sourceNames")return rows.map(r=>({name:text(r["Tên nguồn"]),description:text(r["Mô tả"]),note:text(r["Ghi chú"])})).filter(x=>x.name);
   if(collection==="cashbackPrograms"){
-    const groups=new Map();
-    rows.forEach((r,rowIndex)=>{const product=productByCardId.get(key(r["Card ID"])),name=text(r["Tên chương trình"]),programId=text(r["Program ID"]),groupKey=programId||`${key(r["Card ID"])}|${key(name)}`;if(!product||!name)return;const all=key(r["Nhóm MCC"])==="tất cả"||key(r["Mã MCC"])==="tất cả",ids=all?[]:split(r["Nhóm MCC"]).map(groupName=>mccByName.get(key(groupName))?.id).filter(Boolean),maxRaw=r["Max Cashback"],unlimited=/không giới hạn/i.test(text(maxRaw)),condition={id:text(r["Condition ID"])||`${programId||"PROGRAM"}-COND-${rowIndex+1}`,allMcc:all,mccSelectionMode:all?"all":"selected",mccIds:ids,mccCategoryIds:ids,eligibleMccCategoryIds:ids,excludedMccCategoryIds:[],transactionMethod:/^tất cả$/i.test(text(r["Hình thức giao dịch"]))?"":text(r["Hình thức giao dịch"]),rate:number(r["% Cashback"]),maxType:unlimited?"UNLIMITED":"LIMITED",maxAmount:unlimited?null:number(maxRaw),maxCashback:unlimited?null:number(maxRaw),maxCashbackUnlimited:unlimited,minSpend:unlimited?null:number(r["Chi để Max"]),eligibleTarget:unlimited?null:number(r["Chi để Max"])};let program=groups.get(groupKey);if(!program){program={id:programId,bankCardProductId:product.id,name,combineOperator:/^or$/i.test(text(r["Điều kiện kết hợp"]))?"OR":"AND",conditions:[],totalSpendCondition:{enabled:text(r["Chi tiêu tổng"])!=="",amount:text(r["Chi tiêu tổng"])===""?null:number(r["Chi tiêu tổng"])},totalTarget:text(r["Chi tiêu tổng"])===""?null:number(r["Chi tiêu tổng"]),status:/ngừng|inactive/i.test(text(r["Trạng thái"]))?"inactive":"active",notes:text(r["Ghi chú"])};groups.set(groupKey,program);}program.conditions.push(condition);});
-    return [...groups.values()].map(program=>({...program,...program.conditions[0]}));
+    const programs=new Map();
+    rows.forEach((r,rowIndex)=>{
+      const cardId=text(r.CardID??r["Card ID"]),product=productByCardId.get(key(cardId)),name=text(r.ProgramName??r["Tên chương trình"]),programId=text(r.ProgramID??r["Program ID"])||makeId("cashback-program");
+      if(!product||!name)return;
+      const programKey=programId,conditionId=text(r.ConditionID??r["Condition ID"])||`${programId}-COND-${rowIndex+1}`,conditionName=text(r.ConditionName??r["Điều kiện"])||`Điều kiện ${rowIndex+1}`,mccRaw=text(r.MCC??r["Nhóm MCC"]),all=key(mccRaw)==="tất cả"||key(r["Mã MCC"])==="tất cả",ids=all?[]:split(mccRaw).map(groupName=>mccByName.get(key(groupName))?.id).filter(Boolean),maxType=text(r.MaxType),legacyMax=r["Max Cashback"],unlimited=maxType?maxType.toUpperCase()==="UNLIMITED":/không giới hạn/i.test(text(legacyMax)),maxRaw=r.MaxCashback??legacyMax,rate=number(r.RatePercent??r["% Cashback"]),eligibleCanonical=text(r.ConditionSpendMinimum)!==""?number(r.ConditionSpendMinimum):null,eligibleLegacy=text(r["Chi để Max"])!==""?number(r["Chi để Max"]):null,condition={id:conditionId,name:conditionName,allMcc:all,mccSelectionMode:all?"all":"selected",mccIds:ids,mccCategoryIds:ids,eligibleMccCategoryIds:ids,excludedMccCategoryIds:[],channel:/^tất cả$/i.test(text(r.TransactionMethod??r["Hình thức giao dịch"]))?"":text(r.TransactionMethod??r["Hình thức giao dịch"]),transactionMethod:/^tất cả$/i.test(text(r.TransactionMethod??r["Hình thức giao dịch"]))?"":text(r.TransactionMethod??r["Hình thức giao dịch"]),rate,maxType:unlimited?"UNLIMITED":"LIMITED",max:unlimited?null:number(maxRaw),maxAmount:unlimited?null:number(maxRaw),maxCashback:unlimited?null:number(maxRaw),maxCashbackUnlimited:unlimited,eligibleSpendMinimum:unlimited?null:(eligibleCanonical??eligibleLegacy),eligibleTarget:unlimited?null:(eligibleCanonical??eligibleLegacy),note:text(r.Note??r["Ghi chú"])};
+      let program=programs.get(programKey);
+      if(!program){const totalRaw=r.ProgramTotalSpendMinimum??r["Chi tiêu tổng"],total=text(totalRaw)===""?null:number(totalRaw);program={id:programId,cardProductId:product.id,bankCardProductId:product.id,name,combineOperator:/^or$/i.test(text(r["Điều kiện kết hợp"]))?"OR":"AND",conditionMode:text(r.ConditionMode)||(/^and$/i.test(text(r["Điều kiện kết hợp"]))?"all_required":"independent"),totalSpendMinimum:total,totalSpendCondition:{enabled:total!=null,amount:total},totalTarget:total,conditions:[],packages:[],status:/ngừng|inactive/i.test(text(r.Status??r["Trạng thái"]))?"inactive":"active",notes:""};programs.set(programKey,program);}
+      const packageId=text(r.PackageID),packageName=text(r.PackageName),groupId=text(r.GroupID),groupName=text(r.GroupName);
+      if(packageId){let pkg=program.packages.find(item=>item.id===packageId);if(!pkg){pkg={id:packageId,name:packageName||packageId,groups:[]};program.packages.push(pkg);}const gid=groupId||`${programId}-GROUP-${conditionId}`;let group=pkg.groups.find(item=>item.id===gid);if(!group){group={id:gid,name:groupName||conditionName,conditionCombination:"OR",totalSpendMinimum:null,note:"",conditions:[]};pkg.groups.push(group);}group.conditions.push(condition);}else program.conditions.push(condition);
+    });
+    return [...programs.values()];
   }
   return [];
 }

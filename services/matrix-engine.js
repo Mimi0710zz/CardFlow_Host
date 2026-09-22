@@ -1,6 +1,7 @@
 import {calculateCashbackCycle,customerCardCycleConfig} from './cashback-cycle.js?v=20260901-statement-day-owner-v1';
 import {calculateProgress,isProgramEligible} from './cashback-progress.js?v=20260901-statement-day-owner-v1';
 import {normalizeCashbackConditions,isMccCategoryEligible} from './cashback-program.js?v=20260905-cashback-conditions-v1';
+import {runtimeCashbackPrograms} from './cashback-runtime-adapter.js?v=20260922-host-cashback-parity-v1';
 
 export const formatMatrixCustomerName=fullName=>{const words=String(fullName||'').trim().split(/\s+/).filter(Boolean);return words.map((word,i)=>i===words.length-1?word:Array.from(word)[0].toLocaleUpperCase('vi')+'.').join('');};
 export const getMonthlyCycle=(referenceDate=new Date())=>calculateCashbackCycle({mode:'monthly',referenceDate});
@@ -36,7 +37,8 @@ export function buildMatrix(state,referenceDate=new Date()){
  for(const card of state.customerCards.filter(card=>card.status==='active')){const key=JSON.stringify([card.customerId,card.cardProductId]);if(!owners.has(key))owners.set(key,[]);owners.get(key).push(card);}
  for(const tx of state.transactions){if(!transactions.has(tx.customerCardId))transactions.set(tx.customerCardId,[]);transactions.get(tx.customerCardId).push(tx);}
  const products=new Map(state.cardProducts.filter(product=>product.status!=='inactive').map(product=>[product.id,product]));
- const rows=state.cashbackPrograms.filter(program=>program.status==='active'&&products.has(program.bankCardProductId)).map(program=>{const product=products.get(program.bankCardProductId),bank=banks.get(product.bankId),cells=customers.map(customer=>{const cards=owners.get(JSON.stringify([customer.id,product.id]))||[];return getMatrixCellState({customer,customerCards:cards,product,program,transactions:cards.flatMap(card=>transactions.get(card.id)||[]),programs:state.cashbackPrograms,referenceDate});});return {product,program,bank,cells};});
+ const runtimePrograms=runtimeCashbackPrograms(state.cashbackPrograms);
+ const rows=runtimePrograms.filter(program=>program.status==='active'&&products.has(program.bankCardProductId)).map(program=>{const product=products.get(program.bankCardProductId),bank=banks.get(product.bankId),cells=customers.map(customer=>{const cards=owners.get(JSON.stringify([customer.id,product.id]))||[];return getMatrixCellState({customer,customerCards:cards,product,program,transactions:cards.flatMap(card=>transactions.get(card.id)||[]),programs:runtimePrograms,referenceDate});});return {product,program,bank,cells};});
  rows.sort((a,b)=>compare(a.bank?.name,b.bank?.name)||compare(a.product.cardId,b.product.cardId)||compare(a.program.name,b.program.name)||compare(a.program.id,b.program.id));
  return {customers,rows};
 }
